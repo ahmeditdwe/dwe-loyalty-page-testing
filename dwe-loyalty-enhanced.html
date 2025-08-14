@@ -1353,9 +1353,9 @@
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
                     allOffers.push({ id: doc.id, ...data });
-                    if (data.category) {
-                        categories.add(data.category);
-                    }
+                    // if (data.category) {
+                    //     categories.add(data.category);
+                    // }
                 });
 
                 renderCategories();
@@ -1487,9 +1487,9 @@
             let filteredOffers = allOffers;
             
             // Filter by category
-            if (currentFilter !== 'all') {
-                filteredOffers = filteredOffers.filter(offer => offer.category === currentFilter);
-            }
+            // if (currentFilter !== 'all') {
+            //     filteredOffers = filteredOffers.filter(offer => offer.category === currentFilter);
+            // }
             
             // Filter by location - if location is set to "all" on the offer, it shows for any selected location
             if (currentLocation !== 'all') {
@@ -1548,7 +1548,7 @@
                         </div>
                         <div class="card-body">
                             <div class="offer-type">
-                                <span>${offer.categoryName?.[currentLang] || offer.categoryName?.en || offer.category || 'General'}</span>
+                                // <span>${offer.categoryName?.[currentLang] || offer.categoryName?.en || offer.category || 'General'}</span>
                                 <span class="store-type">${storeType[currentLang]}</span>
                             </div>
                             <div class="discount-amount">${offer.discount} ${currentLang === 'en' ? 'OFF' : 'خصم'}</div>
@@ -1717,7 +1717,7 @@
         });
 
         // Expose filter function globally
-        window.filterByCategory = filterByCategory;
+        // window.filterByCategory = filterByCategory;
     </script>
 </body>
 </html>
