@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DWE Loyalty - Offers</title>
+    <style>
+        :root {
+            --primary-color: #F36F2A;
+            --primary-dark: #d45a1a;
+            --primary-light: #ff8c4a;
+            --bg-color: #ffffff;
+            --card-bg: #f8f9fa;
+            --text-color: #333333;
+            --text-secondary: #666666;
+            --border-color: #e0e0e0;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --shadow-hover: 0 8px 25px rgba(0,0,0,0.15);
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --card-bg: #2a2a2a;
+            --text-color: #ffffff;
+            --text-secondary: #cccccc;
+            --border-color: #404040;
+            --shadow: 0 2px 10px rgba(0,0,0,0.3);
+            --shadow-hover: 0 8px 25px rgba(0,0,0,0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        [dir="rtl"] body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            padding: 1rem;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .nav-link:hover {
+            background: white;
+            color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .filters-section {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .search-location {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.875rem 1rem 0.875rem 3rem;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            font-size: 1rem;
+            background: var(--card-bg);
+            color: var(--text-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(243, 111, 42, 0.1), 0 2px 8px rgba(0,0,0,0.08);
+            transform: translateY(-1px);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        [dir="rtl"] .search-input {
+            padding: 0.875rem 3rem 0.875rem 1rem;
+        }
+
+        [dir="rtl"] .search-icon {
+            left: auto;
+            right: 1rem;
+        }
+
+        /* Custom Dropdown Styling */
+        .custom-dropdown {
+            position: relative;
+            min-width: 200px;
+            font-family: inherit;
+        }
+
+        .dropdown-header {
+            padding: 0.875rem 3rem 0.875rem 1.25rem;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #ffffff, #f5f5f5);
+            color: var(--text-color);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .dropdown-header {
+            background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
+        }
+
+        .dropdown-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(243, 111, 42, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .dropdown-header:hover::before {
+            left: 100%;
+        }
+
+        .dropdown-header:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(243, 111, 42, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .dropdown-header.active {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(243, 111, 42, 0.1), 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .dropdown-arrow {
+            position: absolute;
+            right: 1.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid var(--primary-color);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .dropdown-header.active .dropdown-arrow {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        [dir="rtl"] .dropdown-header {
+            padding: 0.875rem 1.25rem 0.875rem 3rem;
+        }
+
+        [dir="rtl"] .dropdown-arrow {
+            right: auto;
+            left: 1.25rem;
+        }
+
+        .dropdown-list {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 300px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+        }
+
+        .dropdown-list.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+        }
+
+        .dropdown-item {
+            padding: 0.875rem 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: var(--primary-color);
+            transform: translateX(-100%);
+            transition: transform 0.3s;
+        }
+
+        .dropdown-item:hover {
+            background: linear-gradient(90deg, rgba(243, 111, 42, 0.1), transparent);
+            padding-left: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .dropdown-item:hover::before {
+            transform: translateX(0);
+        }
+
+        .dropdown-item.selected {
+            background: linear-gradient(90deg, rgba(243, 111, 42, 0.15), rgba(243, 111, 42, 0.05));
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .dropdown-item.selected::after {
+            content: '✓';
+            position: absolute;
+            right: 1.25rem;
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 1.1rem;
+            animation: checkIn 0.3s ease;
+        }
+
+        @keyframes checkIn {
+            from {
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) rotate(0);
+                opacity: 1;
+            }
+        }
+
+        [dir="rtl"] .dropdown-item.selected::after {
+            right: auto;
+            left: 1.25rem;
+        }
+
+        [dir="rtl"] .dropdown-item:hover {
+            padding-left: 1.25rem;
+            padding-right: 1.5rem;
+        }
+
+        [dir="rtl"] .dropdown-item::before {
+            left: auto;
+            right: 0;
+        }
+
+        /* Location icon for dropdown items */
+        .dropdown-item-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(243, 111, 42, 0.2), rgba(243, 111, 42, 0.1));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .dropdown-item:hover .dropdown-item-icon {
+            background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .dropdown-item.selected .dropdown-item-icon {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            box-shadow: 0 2px 8px rgba(243, 111, 42, 0.3);
+        }
+
+        /* Custom scrollbar for dropdown */
+        .dropdown-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .dropdown-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .dropdown-list::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 3px;
+            opacity: 0.5;
+        }
+
+        .dropdown-list::-webkit-scrollbar-thumb:hover {
+            opacity: 1;
+        }
+
+        /* Overlay for closing dropdown */
+        .dropdown-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 999;
+            display: none;
+        }
+
+        .dropdown-overlay.active {
+            display: block;
+        }
+
+        .category-filters {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .store-type-filters {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: linear-gradient(145deg, var(--card-bg), transparent);
+            border-radius: 15px;
+        }
+
+        .filter-btn {
+            padding: 0.625rem 1.5rem;
+            border: 2px solid transparent;
+            background: linear-gradient(145deg, var(--card-bg), var(--bg-color));
+            color: var(--text-color);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.95rem;
+            font-weight: 500;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .filter-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            transition: width 0.3s ease;
+            z-index: -1;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: var(--primary-color);
+        }
+
+        .filter-btn:hover::before {
+            width: 100%;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(243, 111, 42, 0.3);
+        }
+
+        .filter-btn.active:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 16px rgba(243, 111, 42, 0.4);
+        }
+
+        .offers-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .offer-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        .offer-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--primary-color);
+        }
+
+        .new-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        [dir="rtl"] .new-badge {
+            right: auto;
+            left: 1rem;
+        }
+
+        .card-header {
+            padding: 0;
+            text-align: center;
+            position: relative;
+            background: white;
+        }
+
+        .company-logo {
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(135deg, rgba(243, 111, 42, 0.1), rgba(243, 111, 42, 0.05));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        .company-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            padding: 1rem;
+        }
+
+        .company-logo .logo-placeholder {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 2.5rem;
+        }
+
+        .company-name {
+            color: var(--text-color);
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 0.75rem 1rem;
+            background: var(--bg-color);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .offer-type {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .store-type {
+            background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(243, 111, 42, 0.2);
+        }
+
+        .discount-amount {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 1rem 0;
+        }
+
+        .offer-description {
+            color: var(--text-color);
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .validity {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.875rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            color: white;
+            box-shadow: 0 4px 6px rgba(243, 111, 42, 0.2);
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s, height 0.5s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(243, 111, 42, 0.3);
+        }
+
+        .btn-primary:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            padding: 1.5rem;
+            color: white;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .offer-detail-logo {
+            width: 260px;
+            height: 160px;
+            margin: -20px auto 1rem;
+            background: white;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            overflow: hidden;
+            border: 3px solid var(--primary-color);
+        }
+
+        .offer-detail-logo img {
+            width: 100%;
+            height: 100%;
+            border-radius: 15px;
+            object-fit: fill;
+            padding: 0.5rem;
+        }
+
+        .offer-code-section {
+            background: linear-gradient(145deg, var(--bg-color), var(--card-bg));
+            border: 2px dashed var(--primary-color);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            margin: 1.5rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .offer-code-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(243, 111, 42, 0.1), transparent);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .offer-code-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .offer-code {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+            margin: 0.5rem 0;
+            user-select: all;
+            position: relative;
+            z-index: 1;
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            color: white;
+            border: none;
+            padding: 0.625rem 1.75rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(243, 111, 42, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(243, 111, 42, 0.3);
+        }
+
+        .offer-details {
+            margin: 1.5rem 0;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.875rem 0;
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .detail-item:hover {
+            padding-left: 0.5rem;
+            background: linear-gradient(90deg, rgba(243, 111, 42, 0.05), transparent);
+        }
+
+        .detail-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        /* Contact Page Styles */
+        .contact-section {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .contact-card {
+            background: linear-gradient(145deg, var(--card-bg), var(--bg-color));
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        .contact-title {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .contact-info {
+            margin: 2rem 0;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+            padding: 1.25rem;
+            background: linear-gradient(145deg, var(--bg-color), var(--card-bg));
+            border-radius: 12px;
+            transition: all 0.3s;
+            border: 1px solid var(--border-color);
+        }
+
+        .contact-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: var(--primary-color);
+        }
+
+        .contact-icon {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            animation: pulse 1.5s infinite;
+        }
+
+        .no-offers {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            grid-column: 1 / -1;
+            font-size: 1.1rem;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--card-bg);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .search-location {
+                grid-template-columns: 1fr;
+            }
+
+            .offers-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                width: 95%;
+                border-radius: 20px 20px 0 0;
+                max-height: 100vh;
+            }
+
+            .store-type-filters {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .store-type-filters span {
+                margin-bottom: 0.5rem;
+            }
+
+            .select-wrapper {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section" onclick="goHome()">
+                <div class="logo" id="headerLogo">
+                    <span style="color: var(--primary-color); font-weight: bold;">DWE</span>
+                </div>
+                <div class="logo-text" data-en="Mazaya Aldar" data-ar="مزايا الدار">Mazaya Aldar</div>
+            </div>
+            <div class="controls">
+                <a href="#contact" class="nav-link" data-en="Contact Us" data-ar="اتصل بنا">Contact Us</a>
+                <button class="nav-link" onclick="toggleTheme()">🌙</button>
+                <button class="nav-link" onclick="toggleLanguage()" data-en="عربي" data-ar="English">عربي</button>
+            </div>
+        </div>
+    </header>
+
+    <div id="offersSection">
+        <div class="filters-section">
+            <div class="search-location">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" id="searchInput" 
+                           placeholder="Search offers..." 
+                           data-en-placeholder="Search offers..." 
+                           data-ar-placeholder="البحث عن العروض...">
+                </div>
+                <div class="custom-dropdown" id="locationDropdown">
+                    <div class="dropdown-overlay" id="dropdownOverlay"></div>
+                    <div class="dropdown-header" id="dropdownHeader">
+                        <span id="selectedLocation" data-en="All Locations" data-ar="جميع المواقع">All Locations</span>
+                        <span class="dropdown-arrow"></span>
+                    </div>
+                    <div class="dropdown-list" id="dropdownList">
+                        <div class="dropdown-item selected" data-value="all">
+                            <div class="dropdown-item-icon">📍</div>
+                            <span data-en="All Locations" data-ar="جميع المواقع">All Locations</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="category-filters" id="categoryFilters">
+                <button class="filter-btn active" onclick="filterByCategory('all')" data-category="all" data-en="All" data-ar="الكل">All</button>
+            </div>
+            <div class="store-type-filters">
+                <span style="margin-right: 1rem; color: var(--text-secondary); font-weight: 600;" data-en="Store Type:" data-ar="نوع المتجر:">Store Type:</span>
+                <button class="filter-btn active" data-store="all" onclick="filterByStoreType('all')" data-en="All" data-ar="الكل">All</button>
+                <button class="filter-btn" data-store="online" onclick="filterByStoreType('online')" data-en="Online" data-ar="أونلاين">Online</button>
+                <button class="filter-btn" data-store="showroom" onclick="filterByStoreType('showroom')" data-en="Showroom" data-ar="المعرض">Showroom</button>
+                <button class="filter-btn" data-store="both" onclick="filterByStoreType('both')" data-en="Both" data-ar="كلاهما">Both</button>
+            </div>
+        </div>
+
+        <div class="offers-grid" id="offersGrid">
+            <div class="loading" data-en="Loading offers..." data-ar="جاري تحميل العروض...">Loading offers...</div>
+        </div>
+    </div>
+
+    <div id="contactSection" class="contact-section" style="display: none;">
+        <div class="contact-card">
+            <h2 class="contact-title" data-en="Contact Us" data-ar="اتصل بنا">Contact Us</h2>
+            <p id="contactDescription"></p>
+            <div class="contact-info" id="contactInfo">
+                <div class="loading">Loading contact information...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offer Details Modal -->
+    <div class="modal" id="offerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeOfferModal()">&times;</button>
+                <h2 id="modalCompanyName"></h2>
+            </div>
+            <div class="modal-body">
+                <div class="offer-detail-logo" id="modalLogo"></div>
+                
+                <div class="offer-code-section">
+                    <div class="offer-code-label" data-en="Use this code" data-ar="استخدم هذا الكود">Use this code</div>
+                    <div class="offer-code" id="modalOfferCode">LOADING</div>
+                    <button class="copy-btn" onclick="copyCode()" data-en="Copy Code" data-ar="نسخ الكود">Copy Code</button>
+                </div>
+
+                <div class="offer-details">
+                    <div class="detail-item">
+                        <span class="detail-label" data-en="Discount" data-ar="الخصم">Discount</span>
+                        <span class="detail-value" id="modalDiscount"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label" data-en="Valid at" data-ar="صالح في">Valid at</span>
+                        <span class="detail-value" id="modalStoreType"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label" data-en="Location" data-ar="الموقع">Location</span>
+                        <span class="detail-value" id="modalLocation"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label" data-en="Validity" data-ar="الصلاحية">Validity</span>
+                        <span class="detail-value" id="modalValidity"></span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1.5rem; padding: 1rem; background: linear-gradient(145deg, var(--bg-color), var(--card-bg)); border-radius: 10px;">
+                    <h4 style="margin-bottom: 0.5rem;" data-en="How to use" data-ar="كيفية الاستخدام">How to use</h4>
+                    <p id="modalHowToUse" style="color: var(--text-secondary); line-height: 1.6;"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCL1leMGrP2M9MMnuOk_7mAAPq_ooHVrSQ",
+            authDomain: "dwe-loyalty.firebaseapp.com",
+            projectId: "dwe-loyalty",
+            storageBucket: "dwe-loyalty.firebasestorage.app",
+            messagingSenderId: "1056134121962",
+            appId: "1:1056134121962:web:aa72f074bb9ab395ed4a93",
+            measurementId: "G-BRTG7HNP4Q"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let currentLang = 'en';
+        let currentTheme = 'light';
+        let allOffers = [];
+        let cities = [];
+        let categories = new Set(['all']);
+        let currentFilter = 'all';
+        let currentLocation = 'all';
+        let currentStoreType = 'all';
+        let companyInfo = {};
+        let contactInfo = {};
+        let currentOffer = null;
+
+        // Custom dropdown functionality
+        function initCustomDropdown() {
+            const dropdownHeader = document.getElementById('dropdownHeader');
+            const dropdownList = document.getElementById('dropdownList');
+            const dropdownOverlay = document.getElementById('dropdownOverlay');
+
+            // Toggle dropdown
+            dropdownHeader.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isActive = dropdownList.classList.contains('active');
+                
+                if (isActive) {
+                    closeDropdown();
+                } else {
+                    openDropdown();
+                }
+            });
+
+            // Close dropdown when clicking overlay
+            dropdownOverlay.addEventListener('click', closeDropdown);
+
+            function openDropdown() {
+                dropdownList.classList.add('active');
+                dropdownHeader.classList.add('active');
+                dropdownOverlay.classList.add('active');
+            }
+
+            function closeDropdown() {
+                dropdownList.classList.remove('active');
+                dropdownHeader.classList.remove('active');
+                dropdownOverlay.classList.remove('active');
+            }
+
+            // Handle item selection
+            dropdownList.addEventListener('click', function(e) {
+                const item = e.target.closest('.dropdown-item');
+                if (item) {
+                    const value = item.getAttribute('data-value');
+                    selectLocation(value);
+                    closeDropdown();
+                }
+            });
+        }
+
+        function selectLocation(value) {
+            currentLocation = value;
+            
+            // Update selected item styling
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                item.classList.remove('selected');
+                if (item.getAttribute('data-value') === value) {
+                    item.classList.add('selected');
+                }
+            });
+
+            // Update header text
+            const selectedItem = document.querySelector(`.dropdown-item[data-value="${value}"]`);
+            if (selectedItem) {
+                const textElement = selectedItem.querySelector('span');
+                const text = currentLang === 'en' ? 
+                    textElement.getAttribute('data-en') || textElement.textContent : 
+                    textElement.getAttribute('data-ar') || textElement.textContent;
+                document.getElementById('selectedLocation').textContent = text;
+                
+                // Update the data attributes on the selected location span
+                const selectedLocationSpan = document.getElementById('selectedLocation');
+                selectedLocationSpan.setAttribute('data-en', textElement.getAttribute('data-en') || textElement.textContent);
+                selectedLocationSpan.setAttribute('data-ar', textElement.getAttribute('data-ar') || textElement.textContent);
+            }
+
+            renderOffers();
+        }
+
+        window.goHome = function() {
+            window.location.hash = '';
+            document.getElementById('offersSection').style.display = 'block';
+            document.getElementById('contactSection').style.display = 'none';
+        }
+
+        window.toggleTheme = function() {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            document.querySelector('.nav-link[onclick="toggleTheme()"]').textContent = currentTheme === 'light' ? '🌙' : '☀️';
+            localStorage.setItem('theme', currentTheme);
+        }
+
+        window.toggleLanguage = function() {
+            currentLang = currentLang === 'en' ? 'ar' : 'en';
+            document.documentElement.setAttribute('lang', currentLang);
+            document.documentElement.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
+            updateLanguage();
+            localStorage.setItem('language', currentLang);
+        }
+
+        function updateLanguage() {
+            document.querySelectorAll('[data-en]').forEach(el => {
+                const text = currentLang === 'en' ? el.getAttribute('data-en') : el.getAttribute('data-ar');
+                if (text) el.textContent = text;
+            });
+
+            document.querySelectorAll('[data-en-placeholder]').forEach(el => {
+                const placeholder = currentLang === 'en' ? 
+                    el.getAttribute('data-en-placeholder') : 
+                    el.getAttribute('data-ar-placeholder');
+                if (placeholder) el.placeholder = placeholder;
+            });
+
+            // Update custom dropdown selected text
+            const selectedItem = document.querySelector(`.dropdown-item[data-value="${currentLocation}"]`);
+            if (selectedItem) {
+                const textElement = selectedItem.querySelector('span');
+                const text = currentLang === 'en' ? 
+                    textElement.getAttribute('data-en') : 
+                    textElement.getAttribute('data-ar');
+                document.getElementById('selectedLocation').textContent = text;
+            }
+
+            renderOffers();
+            renderCities();
+        }
+
+        async function loadCompanyInfo() {
+            try {
+                const snapshot = await getDocs(collection(db, 'companyInfo'));
+                snapshot.forEach((doc) => {
+                    companyInfo = doc.data();
+                });
+                
+                if (companyInfo.logo) {
+                    document.getElementById('headerLogo').innerHTML = `<img src="${companyInfo.logo}" alt="Logo">`;
+                }
+            } catch (error) {
+                console.error("Error loading company info:", error);
+            }
+        }
+
+        async function loadContactInfo() {
+            try {
+                const snapshot = await getDocs(collection(db, 'contactInfo'));
+                snapshot.forEach((doc) => {
+                    contactInfo = doc.data();
+                });
+                renderContactInfo();
+            } catch (error) {
+                console.error("Error loading contact info:", error);
+            }
+        }
+
+        async function loadCities() {
+            try {
+                const snapshot = await getDocs(collection(db, 'cities'));
+                cities = [];
+                snapshot.forEach((doc) => {
+                    cities.push({ id: doc.id, ...doc.data() });
+                });
+                renderCities();
+            } catch (error) {
+                console.error("Error loading cities:", error);
+                // Default cities with icons
+                cities = [
+                    { id: 'khobar', nameEn: 'Khobar', nameAr: 'الخبر', icon: '🏙️' },
+                    { id: 'dammam', nameEn: 'Dammam', nameAr: 'الدمام', icon: '🌆' },
+                    { id: 'riyadh', nameEn: 'Riyadh', nameAr: 'الرياض', icon: '🏛️' },
+                    { id: 'jeddah', nameEn: 'Jeddah', nameAr: 'جدة', icon: '🌊' },
+                    { id: 'test', nameEn: 'Test', nameAr: 'اختبار', icon: '🧪' }
+                ];
+                renderCities();
+            }
+        }
+
+        function renderCities() {
+            const dropdownList = document.getElementById('dropdownList');
+            
+            // Create HTML for all dropdown items
+            let itemsHTML = `
+                <div class="dropdown-item ${currentLocation === 'all' ? 'selected' : ''}" data-value="all">
+                    <div class="dropdown-item-icon">🌍</div>
+                    <span data-en="All Locations" data-ar="جميع المواقع">${currentLang === 'en' ? 'All Locations' : 'جميع المواقع'}</span>
+                </div>
+            `;
+            
+            cities.forEach(city => {
+                const cityIcon = city.icon || city.nameEn.charAt(0).toUpperCase();
+                itemsHTML += `
+                    <div class="dropdown-item ${currentLocation === city.id ? 'selected' : ''}" data-value="${city.id}">
+                        <div class="dropdown-item-icon">${cityIcon}</div>
+                        <span data-en="${city.nameEn}" data-ar="${city.nameAr}">${currentLang === 'en' ? city.nameEn : city.nameAr}</span>
+                    </div>
+                `;
+            });
+            
+            dropdownList.innerHTML = itemsHTML;
+            
+            // Update the selected text in header
+            const selectedItem = document.querySelector(`.dropdown-item[data-value="${currentLocation}"]`);
+            if (selectedItem) {
+                const textElement = selectedItem.querySelector('span');
+                const text = currentLang === 'en' ? 
+                    textElement.getAttribute('data-en') : 
+                    textElement.getAttribute('data-ar');
+                const selectedLocationSpan = document.getElementById('selectedLocation');
+                selectedLocationSpan.textContent = text;
+                selectedLocationSpan.setAttribute('data-en', textElement.getAttribute('data-en'));
+                selectedLocationSpan.setAttribute('data-ar', textElement.getAttribute('data-ar'));
+            }
+        }
+
+        async function loadOffers() {
+            try {
+                const offersRef = collection(db, 'offers');
+                const q = query(offersRef, orderBy('createdAt', 'desc'));
+                const querySnapshot = await getDocs(q);
+                
+                allOffers = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    allOffers.push({ id: doc.id, ...data });
+                    if (data.category) {
+                        categories.add(data.category);
+                    }
+                });
+
+                renderCategories();
+                renderOffers();
+            } catch (error) {
+                console.error("Error loading offers:", error);
+                loadSampleData();
+            }
+        }
+
+        function loadSampleData() {
+            allOffers = [
+                {
+                    id: '1',
+                    companyName: { en: 'Air Care Company', ar: 'شركة عناية الهواء' },
+                    discount: '25%',
+                    description: { 
+                        en: 'Air conditioning and ventilation services', 
+                        ar: 'عناية الهواء للتكييف والأجهزة المنزلية' 
+                    },
+                    offerCode: 'AC2024',
+                    howToUse: {
+                        en: 'Show this code at checkout or mention it when calling',
+                        ar: 'اعرض هذا الكود عند الدفع أو اذكره عند الاتصال'
+                    },
+                    category: 'home-services',
+                    categoryName: { en: 'Home Services', ar: 'خدمات منزلية' },
+                    location: 'khobar',
+                    validity: '2024-12-31',
+                    storeType: 'both',
+                    isNew: true,
+                    companyLogo: ''
+                }
+            ];
+            renderCategories();
+            renderOffers();
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('categoryFilters');
+            const allBtn = container.querySelector('[data-category="all"]');
+            
+            const categoryButtons = [allBtn];
+            
+            categories.forEach(cat => {
+                if (cat !== 'all') {
+                    const offer = allOffers.find(o => o.category === cat);
+                    const btn = document.createElement('button');
+                    btn.className = 'filter-btn';
+                    btn.setAttribute('data-category', cat);
+                    
+                    if (offer && offer.categoryName) {
+                        btn.setAttribute('data-en', offer.categoryName.en || cat);
+                        btn.setAttribute('data-ar', offer.categoryName.ar || cat);
+                        btn.textContent = currentLang === 'en' ? 
+                            (offer.categoryName.en || cat) : 
+                            (offer.categoryName.ar || cat);
+                    } else {
+                        btn.textContent = cat;
+                    }
+                    
+                    btn.onclick = () => filterByCategory(cat);
+                    categoryButtons.push(btn);
+                }
+            });
+            
+            container.innerHTML = '';
+            categoryButtons.forEach(btn => container.appendChild(btn));
+        }
+
+        function filterByCategory(category) {
+            currentFilter = category;
+            document.querySelectorAll('.filter-btn[data-category]').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-category') === category);
+            });
+            renderOffers();
+        }
+
+        window.filterByStoreType = function(storeType) {
+            currentStoreType = storeType;
+            document.querySelectorAll('.filter-btn[data-store]').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-store') === storeType);
+            });
+            renderOffers();
+        }
+
+        function getStoreTypeText(storeType) {
+            const types = {
+                online: { en: 'Online Only', ar: 'أونلاين فقط' },
+                showroom: { en: 'Showroom Only', ar: 'المعرض فقط' },
+                both: { en: 'Online & Showroom', ar: 'أونلاين والمعرض' }
+            };
+            return types[storeType] || types.both;
+        }
+
+        function formatValidityDate(dateStr) {
+            if (!dateStr) return { en: 'Limited time offer', ar: 'عرض لفترة محدودة' };
+            
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) {
+                    return { en: 'Limited time offer', ar: 'عرض لفترة محدودة' };
+                }
+                
+                const enDate = date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                const arDate = date.toLocaleDateString('ar-SA', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                
+                return {
+                    en: `Valid until ${enDate}`,
+                    ar: `صالح حتى ${arDate}`
+                };
+            } catch (e) {
+                return { en: 'Limited time offer', ar: 'عرض لفترة محدودة' };
+            }
+        }
+
+        function renderOffers() {
+            const container = document.getElementById('offersGrid');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filteredOffers = allOffers;
+            
+            // Filter by category
+            if (currentFilter !== 'all') {
+                filteredOffers = filteredOffers.filter(offer => offer.category === currentFilter);
+            }
+            
+            // Filter by location - if location is set to "all" on the offer, it shows for any selected location
+            if (currentLocation !== 'all') {
+                filteredOffers = filteredOffers.filter(offer => 
+                    offer.location === 'all' || offer.location === currentLocation
+                );
+            }
+            
+            // Filter by store type
+            if (currentStoreType !== 'all') {
+                filteredOffers = filteredOffers.filter(offer => {
+                    if (currentStoreType === 'both') {
+                        return offer.storeType === 'both';
+                    } else if (currentStoreType === 'online') {
+                        return offer.storeType === 'online' || offer.storeType === 'both';
+                    } else if (currentStoreType === 'showroom') {
+                        return offer.storeType === 'showroom' || offer.storeType === 'both';
+                    }
+                    return true;
+                });
+            }
+            
+            // Filter by search term
+            if (searchTerm) {
+                filteredOffers = filteredOffers.filter(offer => {
+                    const companyName = currentLang === 'en' ? 
+                        (offer.companyName?.en || '').toLowerCase() : 
+                        (offer.companyName?.ar || '').toLowerCase();
+                    const description = currentLang === 'en' ? 
+                        (offer.description?.en || '').toLowerCase() : 
+                        (offer.description?.ar || '').toLowerCase();
+                    return companyName.includes(searchTerm) || description.includes(searchTerm);
+                });
+            }
+            
+            if (filteredOffers.length === 0) {
+                container.innerHTML = `<div class="no-offers" data-en="No offers found" data-ar="لا توجد عروض">${currentLang === 'en' ? 'No offers found' : 'لا توجد عروض'}</div>`;
+                return;
+            }
+            
+            container.innerHTML = filteredOffers.map(offer => {
+                const validity = formatValidityDate(offer.validity);
+                const storeType = getStoreTypeText(offer.storeType);
+                
+                return `
+                    <div class="offer-card" onclick="showOfferDetails('${offer.id}')">
+                        ${offer.isNew ? `<span class="new-badge">${currentLang === 'en' ? 'NEW' : 'جديد'}</span>` : ''}
+                        <div class="card-header">
+                            <div class="company-logo">
+                                ${offer.companyLogo ? 
+                                    `<img src="${offer.companyLogo}" alt="${offer.companyName?.[currentLang]}">` :
+                                    `<span class="logo-placeholder">${(offer.companyName?.[currentLang] || offer.companyName?.en || 'Company').substring(0, 3).toUpperCase()}</span>`
+                                }
+                            </div>
+                            <div class="company-name">${offer.companyName?.[currentLang] || offer.companyName?.en || 'Company'}</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="offer-type">
+                                <span>${offer.categoryName?.[currentLang] || offer.categoryName?.en || offer.category || 'General'}</span>
+                                <span class="store-type">${storeType[currentLang]}</span>
+                            </div>
+                            <div class="discount-amount">${offer.discount} ${currentLang === 'en' ? 'OFF' : 'خصم'}</div>
+                            <div class="offer-description">${offer.description?.[currentLang] || offer.description?.en || 'Special offer'}</div>
+                            <div class="validity">${validity[currentLang]}</div>
+                            <div class="card-actions">
+                                <button class="btn btn-primary">${currentLang === 'en' ? 'View Offer' : 'عرض العرض'}</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.showOfferDetails = function(offerId) {
+            currentOffer = allOffers.find(o => o.id === offerId);
+            if (!currentOffer) return;
+
+            const validity = formatValidityDate(currentOffer.validity);
+            const storeType = getStoreTypeText(currentOffer.storeType);
+            const cityName = cities.find(c => c.id === currentOffer.location);
+            const locationText = cityName ? 
+                (currentLang === 'en' ? cityName.nameEn : cityName.nameAr) : 
+                (currentLang === 'en' ? 'All Locations' : 'جميع المواقع');
+
+            document.getElementById('modalCompanyName').textContent = 
+                currentOffer.companyName?.[currentLang] || currentOffer.companyName?.en || 'Company';
+            
+            document.getElementById('modalLogo').innerHTML = currentOffer.companyLogo ? 
+                `<img src="${currentOffer.companyLogo}" alt="${currentOffer.companyName?.[currentLang]}">` :
+                `<span style="font-size: 2rem; color: var(--primary-color); font-weight: bold;">${(currentOffer.companyName?.[currentLang] || currentOffer.companyName?.en || 'Company').substring(0, 3).toUpperCase()}</span>`;
+            
+            document.getElementById('modalOfferCode').textContent = currentOffer.offerCode || 'NO-CODE';
+            document.getElementById('modalDiscount').textContent = currentOffer.discount;
+            document.getElementById('modalStoreType').textContent = storeType[currentLang];
+            document.getElementById('modalLocation').textContent = locationText;
+            document.getElementById('modalValidity').textContent = validity[currentLang];
+            document.getElementById('modalHowToUse').textContent = 
+                currentOffer.howToUse?.[currentLang] || 
+                currentOffer.howToUse?.en || 
+                (currentLang === 'en' ? 
+                    'Present this code at the time of purchase to receive your discount' : 
+                    'قدم هذا الكود وقت الشراء للحصول على الخصم');
+
+            document.getElementById('offerModal').classList.add('active');
+        }
+
+        window.closeOfferModal = function() {
+            document.getElementById('offerModal').classList.remove('active');
+        }
+
+        window.copyCode = function() {
+            if (!currentOffer) return;
+            
+            const code = currentOffer.offerCode || 'NO-CODE';
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = currentLang === 'en' ? 'Copied!' : 'تم النسخ!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        function renderContactInfo() {
+            const container = document.getElementById('contactInfo');
+            if (!contactInfo.phone && !contactInfo.email && !contactInfo.address) {
+                container.innerHTML = `<p>${currentLang === 'en' ? 'Contact information will be available soon.' : 'معلومات الاتصال ستكون متاحة قريباً.'}</p>`;
+                return;
+            }
+
+            container.innerHTML = `
+                ${contactInfo.phone ? `
+                    <div class="contact-item">
+                        <span class="contact-icon">📞</span>
+                        <div>
+                            <strong>${currentLang === 'en' ? 'Phone' : 'الهاتف'}</strong><br>
+                            ${contactInfo.phone}
+                        </div>
+                    </div>
+                ` : ''}
+                ${contactInfo.email ? `
+                    <div class="contact-item">
+                        <span class="contact-icon">📧</span>
+                        <div>
+                            <strong>${currentLang === 'en' ? 'Email' : 'البريد الإلكتروني'}</strong><br>
+                            ${contactInfo.email}
+                        </div>
+                    </div>
+                ` : ''}
+                ${contactInfo.address ? `
+                    <div class="contact-item">
+                        <span class="contact-icon">📍</span>
+                        <div>
+                            <strong>${currentLang === 'en' ? 'Address' : 'العنوان'}</strong><br>
+                            ${contactInfo.address[currentLang] || contactInfo.address.en || contactInfo.address}
+                        </div>
+                    </div>
+                ` : ''}
+                ${contactInfo.workingHours ? `
+                    <div class="contact-item">
+                        <span class="contact-icon">🕐</span>
+                        <div>
+                            <strong>${currentLang === 'en' ? 'Working Hours' : 'ساعات العمل'}</strong><br>
+                            ${contactInfo.workingHours[currentLang] || contactInfo.workingHours.en || contactInfo.workingHours}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+
+            if (contactInfo.description) {
+                document.getElementById('contactDescription').textContent = 
+                    contactInfo.description[currentLang] || contactInfo.description.en || '';
+            }
+        }
+
+        // Handle navigation
+        window.addEventListener('hashchange', function() {
+            const hash = window.location.hash;
+            if (hash === '#contact') {
+                document.getElementById('offersSection').style.display = 'none';
+                document.getElementById('contactSection').style.display = 'block';
+                loadContactInfo();
+            } else {
+                document.getElementById('offersSection').style.display = 'block';
+                document.getElementById('contactSection').style.display = 'none';
+            }
+        });
+
+        // Initialize
+        document.getElementById('searchInput').addEventListener('input', renderOffers);
+        
+        // Initialize custom dropdown
+        initCustomDropdown();
+
+        // Load saved preferences
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        const savedLang = localStorage.getItem('language') || 'en';
+        
+        if (savedTheme === 'dark') {
+            toggleTheme();
+        }
+        
+        if (savedLang === 'ar') {
+            toggleLanguage();
+        }
+
+        // Check initial hash
+        if (window.location.hash === '#contact') {
+            document.getElementById('offersSection').style.display = 'none';
+            document.getElementById('contactSection').style.display = 'block';
+            loadContactInfo();
+        }
+
+        // Load data
+        loadCompanyInfo();
+        loadCities();
+        loadOffers();
+
+        // Close modal when clicking outside
+        document.getElementById('offerModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeOfferModal();
+            }
+        });
+
+        // Expose filter function globally
+        window.filterByCategory = filterByCategory;
+    </script>
+</body>
+</html>
