@@ -1729,54 +1729,54 @@
             }
         });
 
-        // Track page views when the page loads
-        async function trackPageView() {
-            const visitorId = getOrCreateVisitorId(); // Store in localStorage
-            await addDoc(collection(db, 'analytics_pageviews'), {
-                visitorId: visitorId,
-                page: window.location.pathname,
-                referrer: document.referrer,
-                device: getDeviceType(),
-                browser: getBrowserName(),
-                location: currentLocation,
-                timestamp: serverTimestamp(),
-                sessionId: getSessionId()
-            });
-        }
-        // Track when user clicks "View Offer" or opens modal
-        async function trackOfferClick(offerId, action) {
-            await addDoc(collection(db, 'analytics_offer_clicks'), {
-                offerId: offerId,
-                companyName: offer.companyName[currentLang],
-                action: action, // 'view' or 'click'
-                visitorId: getOrCreateVisitorId(),
-                timestamp: serverTimestamp()
-            });
-        }
-        function getOrCreateVisitorId() {
-            let visitorId = localStorage.getItem('visitorId');
-            if (!visitorId) {
-                visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('visitorId', visitorId);
-            }
-            return visitorId;
-        }
+        // // Track page views when the page loads
+        // async function trackPageView() {
+        //     const visitorId = getOrCreateVisitorId(); // Store in localStorage
+        //     await addDoc(collection(db, 'analytics_pageviews'), {
+        //         visitorId: visitorId,
+        //         page: window.location.pathname,
+        //         referrer: document.referrer,
+        //         device: getDeviceType(),
+        //         browser: getBrowserName(),
+        //         location: currentLocation,
+        //         timestamp: serverTimestamp(),
+        //         sessionId: getSessionId()
+        //     });
+        // }
+        // // Track when user clicks "View Offer" or opens modal
+        // async function trackOfferClick(offerId, action) {
+        //     await addDoc(collection(db, 'analytics_offer_clicks'), {
+        //         offerId: offerId,
+        //         companyName: offer.companyName[currentLang],
+        //         action: action, // 'view' or 'click'
+        //         visitorId: getOrCreateVisitorId(),
+        //         timestamp: serverTimestamp()
+        //     });
+        // }
+        // function getOrCreateVisitorId() {
+        //     let visitorId = localStorage.getItem('visitorId');
+        //     if (!visitorId) {
+        //         visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        //         localStorage.setItem('visitorId', visitorId);
+        //     }
+        //     return visitorId;
+        // }
         
-        function getDeviceType() {
-            const userAgent = navigator.userAgent;
-            if (/tablet|ipad|playbook|silk/i.test(userAgent)) return 'tablet';
-            if (/mobile|iphone|ipod|android|blackberry|opera|mini|windows\sce|palm|smartphone|iemobile/i.test(userAgent)) return 'mobile';
-            return 'desktop';
-        }
+        // function getDeviceType() {
+        //     const userAgent = navigator.userAgent;
+        //     if (/tablet|ipad|playbook|silk/i.test(userAgent)) return 'tablet';
+        //     if (/mobile|iphone|ipod|android|blackberry|opera|mini|windows\sce|palm|smartphone|iemobile/i.test(userAgent)) return 'mobile';
+        //     return 'desktop';
+        // }
         
-        function getBrowserName() {
-            const userAgent = navigator.userAgent;
-            if (userAgent.indexOf("Chrome") > -1) return "Chrome";
-            if (userAgent.indexOf("Safari") > -1) return "Safari";
-            if (userAgent.indexOf("Firefox") > -1) return "Firefox";
-            if (userAgent.indexOf("Edge") > -1) return "Edge";
-            return "Other";
-        }
+        // function getBrowserName() {
+        //     const userAgent = navigator.userAgent;
+        //     if (userAgent.indexOf("Chrome") > -1) return "Chrome";
+        //     if (userAgent.indexOf("Safari") > -1) return "Safari";
+        //     if (userAgent.indexOf("Firefox") > -1) return "Firefox";
+        //     if (userAgent.indexOf("Edge") > -1) return "Edge";
+        //     return "Other";
+        // }
     </script>
 </body>
 <footer>
