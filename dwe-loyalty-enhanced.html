@@ -1565,7 +1565,7 @@
                                 <span class="store-type">${storeType[currentLang]}</span>
                             </div>
                             <div class="discount-amount">${offer.discount} ${currentLang === 'en' ? 'OFF' : 'خصم'}</div>
-                            <div class="offer-description">${offer.description?.[currentLang] || offer.description?.en || 'Special offer'}</div>
+                            <div class="offer-description">${offer.description?.[currentLang] || offer.description?.en || currentLang === 'en' ? 'Special offer' : 'عرض لفترة محدودة'}</div>
                             <div class="validity">${validity[currentLang]}</div>
                             <div class="card-actions">
                                 <button class="btn btn-primary">${currentLang === 'en' ? 'View Offer' : 'عرض العرض'}</button>
