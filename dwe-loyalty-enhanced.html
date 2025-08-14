@@ -1369,70 +1369,70 @@
         function loadSampleData() {
             allOffers = [
                 {
-                    id: '1',
-                    companyName: { en: 'Air Care Company', ar: 'شركة عناية الهواء' },
-                    discount: '25%',
-                    description: { 
-                        en: 'Air conditioning and ventilation services', 
-                        ar: 'عناية الهواء للتكييف والأجهزة المنزلية' 
-                    },
-                    offerCode: 'AC2024',
-                    howToUse: {
-                        en: 'Show this code at checkout or mention it when calling',
-                        ar: 'اعرض هذا الكود عند الدفع أو اذكره عند الاتصال'
-                    },
-                    category: 'home-services',
-                    categoryName: { en: 'Home Services', ar: 'خدمات منزلية' },
-                    location: 'khobar',
-                    validity: '2024-12-31',
-                    storeType: 'both',
-                    isNew: true,
-                    companyLogo: ''
+                    // id: '1',
+                    // companyName: { en: 'Air Care Company', ar: 'شركة عناية الهواء' },
+                    // discount: '25%',
+                    // description: { 
+                    //     en: 'Air conditioning and ventilation services', 
+                    //     ar: 'عناية الهواء للتكييف والأجهزة المنزلية' 
+                    // },
+                    // offerCode: 'AC2024',
+                    // howToUse: {
+                    //     en: 'Show this code at checkout or mention it when calling',
+                    //     ar: 'اعرض هذا الكود عند الدفع أو اذكره عند الاتصال'
+                    // },
+                    // category: 'home-services',
+                    // categoryName: { en: 'Home Services', ar: 'خدمات منزلية' },
+                    // location: 'khobar',
+                    // validity: '2024-12-31',
+                    // storeType: 'both',
+                    // isNew: true,
+                    // companyLogo: ''
                 }
             ];
-            renderCategories();
+            // renderCategories();
             renderOffers();
         }
 
-        function renderCategories() {
-            const container = document.getElementById('categoryFilters');
-            const allBtn = container.querySelector('[data-category="all"]');
+        // function renderCategories() {
+        //     const container = document.getElementById('categoryFilters');
+        //     const allBtn = container.querySelector('[data-category="all"]');
             
-            const categoryButtons = [allBtn];
+        //     const categoryButtons = [allBtn];
             
-            categories.forEach(cat => {
-                if (cat !== 'all') {
-                    const offer = allOffers.find(o => o.category === cat);
-                    const btn = document.createElement('button');
-                    btn.className = 'filter-btn';
-                    btn.setAttribute('data-category', cat);
+        //     categories.forEach(cat => {
+        //         if (cat !== 'all') {
+        //             const offer = allOffers.find(o => o.category === cat);
+        //             const btn = document.createElement('button');
+        //             btn.className = 'filter-btn';
+        //             btn.setAttribute('data-category', cat);
                     
-                    if (offer && offer.categoryName) {
-                        btn.setAttribute('data-en', offer.categoryName.en || cat);
-                        btn.setAttribute('data-ar', offer.categoryName.ar || cat);
-                        btn.textContent = currentLang === 'en' ? 
-                            (offer.categoryName.en || cat) : 
-                            (offer.categoryName.ar || cat);
-                    } else {
-                        btn.textContent = cat;
-                    }
+        //             if (offer && offer.categoryName) {
+        //                 btn.setAttribute('data-en', offer.categoryName.en || cat);
+        //                 btn.setAttribute('data-ar', offer.categoryName.ar || cat);
+        //                 btn.textContent = currentLang === 'en' ? 
+        //                     (offer.categoryName.en || cat) : 
+        //                     (offer.categoryName.ar || cat);
+        //             } else {
+        //                 btn.textContent = cat;
+        //             }
                     
-                    btn.onclick = () => filterByCategory(cat);
-                    categoryButtons.push(btn);
-                }
-            });
+        //             btn.onclick = () => filterByCategory(cat);
+        //             categoryButtons.push(btn);
+        //         }
+        //     });
             
-            container.innerHTML = '';
-            categoryButtons.forEach(btn => container.appendChild(btn));
-        }
+        //     container.innerHTML = '';
+        //     categoryButtons.forEach(btn => container.appendChild(btn));
+        // }
 
-        function filterByCategory(category) {
-            currentFilter = category;
-            document.querySelectorAll('.filter-btn[data-category]').forEach(btn => {
-                btn.classList.toggle('active', btn.getAttribute('data-category') === category);
-            });
-            renderOffers();
-        }
+        // function filterByCategory(category) {
+        //     currentFilter = category;
+        //     document.querySelectorAll('.filter-btn[data-category]').forEach(btn => {
+        //         btn.classList.toggle('active', btn.getAttribute('data-category') === category);
+        //     });
+        //     renderOffers();
+        // }
 
         window.filterByStoreType = function(storeType) {
             currentStoreType = storeType;
