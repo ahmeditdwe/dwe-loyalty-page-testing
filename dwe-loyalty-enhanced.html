@@ -1185,290 +1185,688 @@
     </div>
 
     <script type="module">
-import { 
-  initializeApp 
-} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, getDoc, increment } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
-import { 
-  getFirestore, collection, getDocs, query, orderBy, 
-  addDoc, serverTimestamp, doc, updateDoc, increment, writeBatch 
-} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+        const firebaseConfig = {
+            apiKey: "AIzaSyCL1leMGrP2M9MMnuOk_7mAAPq_ooHVrSQ",
+            authDomain: "dwe-loyalty.firebaseapp.com",
+            projectId: "dwe-loyalty",
+            storageBucket: "dwe-loyalty.firebasestorage.app",
+            messagingSenderId: "1056134121962",
+            appId: "1:1056134121962:web:aa72f074bb9ab395ed4a93",
+            measurementId: "G-BRTG7HNP4Q"
+        };
 
-const firebaseConfig = { 
-  apiKey: "AIzaSyCL1leMGrP2M9MMnuOk_7mAAPq_ooHVrSQ",
-  authDomain: "dwe-loyalty.firebaseapp.com",
-  projectId: "dwe-loyalty",
-  storageBucket: "dwe-loyalty.firebasestorage.app",
-  messagingSenderId: "1056134121962",
-  appId: "1:1056134121962:web:aa72f074bb9ab395ed4a93",
-  measurementId: "G-BRTG7HNP4Q"
-};
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+        let currentLang = 'en';
+        let currentTheme = 'light';
+        let allOffers = [];
+        let cities = [];
+        let currentLocation = 'all';
+        let currentStoreType = 'all';
+        let companyInfo = {};
+        let contactInfo = {};
+        let currentOffer = null;
+        let sessionStartTime = Date.now();
+        let visitorId = null;
+        let sessionId = null;
 
-// ---------- STATE ----------
-let currentLang = localStorage.getItem('language') || 'en';
-let currentTheme = localStorage.getItem('theme') || 'light';
-let allOffers = [], cities = [], contactInfo = {}, companyInfo = {};
-let currentLocation = 'all', currentStoreType = 'all', currentOffer = null;
-let sessionStartTime = Date.now(), visitorId, sessionId;
+        // Analytics Helper Functions
+        function getOrCreateVisitorId() {
+            let visitorId = localStorage.getItem('dwe_visitor_id');
+            if (!visitorId) {
+                visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('dwe_visitor_id', visitorId);
+            }
+            return visitorId;
+        }
 
-// ---------- HELPERS ----------
-const getVisitorId = () => localStorage.getItem('dwe_visitor_id') 
-  || (localStorage.setItem('dwe_visitor_id', 'visitor_' + Date.now() + '_' + Math.random().toString(36).slice(2)), localStorage.getItem('dwe_visitor_id'));
+        function getSessionId() {
+            if (!sessionId) {
+                sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+            return sessionId;
+        }
 
-const getSessionId = () => sessionId ||= 'session_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        function getDeviceType() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            if (/tablet|ipad|playbook|silk/i.test(userAgent)) return 'tablet';
+            if (/mobile|iphone|ipod|android|blackberry|opera|mini|windows\sce|palm|smartphone|iemobile/i.test(userAgent)) return 'mobile';
+            return 'desktop';
+        }
 
-const getDeviceType = () => /mobile|android|iphone/i.test(navigator.userAgent) ? 'mobile' : (/tablet|ipad/i.test(navigator.userAgent) ? 'tablet' : 'desktop');
-const getBrowser = () => navigator.userAgent.match(/Chrome|Safari|Firefox|Edge/)?.[0] || "Other";
+        function getBrowserName() {
+            const userAgent = navigator.userAgent;
+            if (userAgent.indexOf("Chrome") > -1) return "Chrome";
+            if (userAgent.indexOf("Safari") > -1) return "Safari";
+            if (userAgent.indexOf("Firefox") > -1) return "Firefox";
+            if (userAgent.indexOf("Edge") > -1) return "Edge";
+            return "Other";
+        }
 
-function formatValidityDate(dateStr) {
-  if (!dateStr) return { en: 'Limited time offer', ar: 'عرض لفترة محدودة' };
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return { en: 'Limited time offer', ar: 'عرض لفترة محدودة' };
-  return {
-    en: "Valid until " + date.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' }),
-    ar: "صالح حتى " + date.toLocaleDateString('ar-SA', { year:'numeric', month:'long', day:'numeric' })
-  };
-}
+        // Track page view when page loads
+        async function trackPageView() {
+            try {
+                visitorId = getOrCreateVisitorId();
+                sessionId = getSessionId();
+                
+                await addDoc(collection(db, 'analytics_pageviews'), {
+                    visitorId: visitorId,
+                    sessionId: sessionId,
+                    page: window.location.pathname,
+                    referrer: document.referrer || 'direct',
+                    device: getDeviceType(),
+                    browser: getBrowserName(),
+                    location: currentLocation,
+                    language: currentLang,
+                    timestamp: serverTimestamp(),
+                    userAgent: navigator.userAgent
+                });
+            } catch (error) {
+                console.error("Error tracking page view:", error);
+            }
+        }
 
-function getStoreTypeText(storeType) {
-  const types = {
-    online: { en: 'Online Only', ar: 'أونلاين فقط' },
-    showroom: { en: 'Showroom Only', ar: 'المعرض فقط' },
-    both: { en: 'Online & Showroom', ar: 'أونلاين والمعرض' }
-  };
-  return types[storeType] || types.both;
-}
+        // Track offer views and clicks
+        async function trackOfferInteraction(offerId, action, offerData) {
+            try {
+                await addDoc(collection(db, 'analytics_offer_clicks'), {
+                    offerId: offerId,
+                    companyName: offerData.companyName?.[currentLang] || offerData.companyName?.en || 'Unknown',
+                    action: action, // 'view' or 'copy_code'
+                    discount: offerData.discount,
+                    category: offerData.category,
+                    storeType: offerData.storeType,
+                    visitorId: getOrCreateVisitorId(),
+                    sessionId: getSessionId(),
+                    timestamp: serverTimestamp(),
+                    device: getDeviceType(),
+                    browser: getBrowserName()
+                });
 
-// ---------- ANALYTICS ----------
-async function trackPageView() {
-  try {
-    await addDoc(collection(db, 'analytics_pageviews'), {
-      visitorId: getVisitorId(),
-      sessionId: getSessionId(),
-      page: location.pathname,
-      referrer: document.referrer || 'direct',
-      device: getDeviceType(),
-      browser: getBrowser(),
-      location: currentLocation,
-      language: currentLang,
-      timestamp: serverTimestamp(),
-    });
-  } catch (e) { console.error("PageView Error:", e); }
-}
+                // Also update offer stats directly
+                const offerRef = doc(db, 'offers', offerId);
+                const statsField = action === 'view' ? 'viewCount' : 'clickCount';
+                await updateDoc(offerRef, {
+                    [statsField]: increment(1)
+                });
+            } catch (error) {
+                console.error("Error tracking offer interaction:", error);
+            }
+        }
 
-async function trackOfferInteraction(offerId, action, offerData) {
-  try {
-    const batch = writeBatch(db);
-    batch.set(doc(collection(db, 'analytics_offer_clicks')), {
-      offerId,
-      action,
-      discount: offerData.discount,
-      visitorId: getVisitorId(),
-      sessionId: getSessionId(),
-      timestamp: serverTimestamp(),
-    });
-    batch.update(doc(db, 'offers', offerId), {
-      [action === 'view' ? 'viewCount' : 'clickCount']: increment(1)
-    });
-    await batch.commit();
-  } catch (e) { console.error("OfferTrack Error:", e); }
-}
+        // Track search queries
+        async function trackSearch(query, resultsCount) {
+            try {
+                await addDoc(collection(db, 'analytics_searches'), {
+                    query: query.toLowerCase(),
+                    resultsCount: resultsCount,
+                    visitorId: getOrCreateVisitorId(),
+                    sessionId: getSessionId(),
+                    timestamp: serverTimestamp(),
+                    location: currentLocation,
+                    storeType: currentStoreType,
+                    device: getDeviceType()
+                });
+            } catch (error) {
+                console.error("Error tracking search:", error);
+            }
+        }
 
-async function trackSearch(query, resultsCount) {
-  try {
-    await addDoc(collection(db, 'analytics_searches'), {
-      query: query.toLowerCase(),
-      resultsCount,
-      visitorId: getVisitorId(),
-      sessionId: getSessionId(),
-      timestamp: serverTimestamp(),
-      location: currentLocation,
-      storeType: currentStoreType,
-      device: getDeviceType()
-    });
-  } catch (e) { console.error("SearchTrack Error:", e); }
-}
+        // Track session end (when user leaves)
+        window.addEventListener('beforeunload', async function() {
+            const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000); // in seconds
+            try {
+                await addDoc(collection(db, 'analytics_sessions'), {
+                    visitorId: getOrCreateVisitorId(),
+                    sessionId: getSessionId(),
+                    duration: sessionDuration,
+                    timestamp: serverTimestamp(),
+                    device: getDeviceType(),
+                    browser: getBrowserName()
+                });
+            } catch (error) {
+                console.error("Error tracking session:", error);
+            }
+        });
 
-window.addEventListener('beforeunload', async () => {
-  const duration = Math.floor((Date.now() - sessionStartTime)/1000);
-  try {
-    await addDoc(collection(db, 'analytics_sessions'), {
-      visitorId: getVisitorId(),
-      sessionId: getSessionId(),
-      duration,
-      timestamp: serverTimestamp(),
-      device: getDeviceType(),
-      browser: getBrowser()
-    });
-  } catch (e) { console.error("SessionTrack Error:", e); }
-});
+        // Custom dropdown functionality
+        function initCustomDropdown() {
+            const dropdownHeader = document.getElementById('dropdownHeader');
+            const dropdownList = document.getElementById('dropdownList');
+            const dropdownOverlay = document.getElementById('dropdownOverlay');
 
-// ---------- DROPDOWN ----------
-function initCustomDropdown() {
-  const header = document.getElementById('dropdownHeader');
-  const list = document.getElementById('dropdownList');
-  const overlay = document.getElementById('dropdownOverlay');
+            // Toggle dropdown
+            dropdownHeader.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isActive = dropdownList.classList.contains('active');
+                
+                if (isActive) {
+                    closeDropdown();
+                } else {
+                    openDropdown();
+                }
+            });
 
-  header.addEventListener('click', e => {
-    e.stopPropagation();
-    list.classList.toggle('active');
-    header.classList.toggle('active');
-    overlay.classList.toggle('active');
-  });
-  overlay.addEventListener('click', () => {
-    list.classList.remove('active'); header.classList.remove('active'); overlay.classList.remove('active');
-  });
-  list.addEventListener('click', e => {
-    const item = e.target.closest('.dropdown-item');
-    if (!item) return;
-    selectLocation(item.getAttribute('data-value'));
-    list.classList.remove('active'); header.classList.remove('active'); overlay.classList.remove('active');
-  });
-}
+            // Close dropdown when clicking overlay
+            dropdownOverlay.addEventListener('click', closeDropdown);
 
-function selectLocation(value) {
-  currentLocation = value;
-  document.querySelectorAll('.dropdown-item').forEach(i => i.classList.toggle('selected', i.getAttribute('data-value')===value));
-  const selectedItem = document.querySelector(`.dropdown-item[data-value="${value}"] span`);
-  if (selectedItem) {
-    document.getElementById('selectedLocation').textContent = selectedItem.getAttribute('data-'+currentLang);
-  }
-  renderOffers();
-}
+            function openDropdown() {
+                dropdownList.classList.add('active');
+                dropdownHeader.classList.add('active');
+                dropdownOverlay.classList.add('active');
+            }
 
-// ---------- RENDER ----------
-function renderCities() {
-  const list = document.getElementById('dropdownList');
-  let html = `
-    <div class="dropdown-item ${currentLocation==='all'?'selected':''}" data-value="all">
-      <div class="dropdown-item-icon">🌍</div>
-      <span data-en="All Locations" data-ar="جميع المناطق">${currentLang==='en'?'All Locations':'جميع المناطق'}</span>
-    </div>
-  `;
-  cities.forEach(c => {
-    html += `
-      <div class="dropdown-item ${currentLocation===c.id?'selected':''}" data-value="${c.id}">
-        <div class="dropdown-item-icon">${c.icon||c.nameEn[0]}</div>
-        <span data-en="${c.nameEn}" data-ar="${c.nameAr}">${currentLang==='en'?c.nameEn:c.nameAr}</span>
-      </div>`;
-  });
-  list.innerHTML = html;
-}
+            function closeDropdown() {
+                dropdownList.classList.remove('active');
+                dropdownHeader.classList.remove('active');
+                dropdownOverlay.classList.remove('active');
+            }
 
-function renderOffers() {
-  const container = document.getElementById('offersGrid');
-  const term = document.getElementById('searchInput').value.toLowerCase();
-  let filtered = allOffers.filter(o =>
-    (currentLocation==='all'||o.location==='all'||o.location===currentLocation) &&
-    (currentStoreType==='all'||o.storeType===currentStoreType||o.storeType==='both') &&
-    (!term || (o.companyName?.[currentLang]||'').toLowerCase().includes(term) || (o.description?.[currentLang]||'').toLowerCase().includes(term))
-  );
+            // Handle item selection
+            dropdownList.addEventListener('click', function(e) {
+                const item = e.target.closest('.dropdown-item');
+                if (item) {
+                    const value = item.getAttribute('data-value');
+                    selectLocation(value);
+                    closeDropdown();
+                }
+            });
+        }
 
-  if (term.length>2) trackSearch(term, filtered.length);
+        function selectLocation(value) {
+            currentLocation = value;
+            
+            // Update selected item styling
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                item.classList.remove('selected');
+                if (item.getAttribute('data-value') === value) {
+                    item.classList.add('selected');
+                }
+            });
 
-  container.innerHTML = filtered.length ? filtered.map(o=>{
-    const validity = formatValidityDate(o.validity);
-    const storeType = getStoreTypeText(o.storeType);
-    return `
-      <div class="offer-card" onclick="showOfferDetails('${o.id}')">
-        ${o.isNew?`<span class="new-badge">${currentLang==='en'?'NEW':'جديد'}</span>`:''}
-        <div class="card-header">
-          <div class="company-logo">${o.companyLogo?`<img src="${o.companyLogo}">`:`<span>${(o.companyName?.[currentLang]||'').slice(0,3)}</span>`}</div>
-          <div class="company-name">${o.companyName?.[currentLang]||'Company'}</div>
-        </div>
-        <div class="card-body">
-          <div class="store-type">${storeType[currentLang]}</div>
-          <div class="discount-amount">${o.discount} ${currentLang==='en'?'OFF':'خصم'}</div>
-          <div class="offer-description">${o.description?.[currentLang]||''}</div>
-          <div class="validity">${validity[currentLang]}</div>
-          <div class="card-actions"><button>${currentLang==='en'?'View Offer':'عرض العرض'}</button></div>
-        </div>
-      </div>`;
-  }).join('') : `<div class="no-offers">${currentLang==='en'?'No offers found':'لا توجد عروض'}</div>`;
-}
+            // Update header text
+            const selectedItem = document.querySelector(`.dropdown-item[data-value="${value}"]`);
+            if (selectedItem) {
+                const textElement = selectedItem.querySelector('span');
+                const text = currentLang === 'en' ? 
+                    textElement.getAttribute('data-en') || textElement.textContent : 
+                    textElement.getAttribute('data-ar') || textElement.textContent;
+                document.getElementById('selectedLocation').textContent = text;
+                
+                // Update the data attributes on the selected location span
+                const selectedLocationSpan = document.getElementById('selectedLocation');
+                selectedLocationSpan.setAttribute('data-en', textElement.getAttribute('data-en') || textElement.textContent);
+                selectedLocationSpan.setAttribute('data-ar', textElement.getAttribute('data-ar') || textElement.textContent);
+            }
 
-// ---------- MODAL ----------
-window.showOfferDetails = async function(id) {
-  currentOffer = allOffers.find(o=>o.id===id);
-  if (!currentOffer) return;
-  await trackOfferInteraction(id,'view',currentOffer);
+            renderOffers();
+        }
 
-  document.getElementById('modalCompanyName').textContent = currentOffer.companyName?.[currentLang]||'Company';
-  document.getElementById('modalLogo').innerHTML = currentOffer.companyLogo?`<img src="${currentOffer.companyLogo}">`:`<span>${(currentOffer.companyName?.[currentLang]||'').slice(0,3)}</span>`;
-  document.getElementById('modalOfferCode').textContent = currentOffer.offerCode||'NO-CODE';
-  document.getElementById('modalDiscount').textContent = currentOffer.discount;
-  document.getElementById('modalStoreType').textContent = getStoreTypeText(currentOffer.storeType)[currentLang];
-  document.getElementById('modalLocation').textContent = cities.find(c=>c.id===currentOffer.location)?.[currentLang==='en'?'nameEn':'nameAr'] || (currentLang==='en'?'All Locations':'جميع المناطق');
-  document.getElementById('modalValidity').textContent = formatValidityDate(currentOffer.validity)[currentLang];
-  document.getElementById('modalHowToUse').textContent = currentOffer.howToUse?.[currentLang] || (currentLang==='en'?'Present this code at purchase':'قدم هذا الكود وقت الشراء');
+        window.goHome = function() {
+            window.location.hash = '';
+            document.getElementById('offersSection').style.display = 'block';
+            document.getElementById('contactSection').style.display = 'none';
+        }
 
-  document.getElementById('offerModal').classList.add('active');
-};
-window.closeOfferModal = ()=> document.getElementById('offerModal').classList.remove('active');
-window.copyCode = async function() {
-  if (!currentOffer) return;
-  const code = currentOffer.offerCode||'NO-CODE';
-  await navigator.clipboard.writeText(code);
-  await trackOfferInteraction(currentOffer.id,'copy_code',currentOffer);
-  const btn = event.target;
-  const old = btn.textContent;
-  btn.textContent = currentLang==='en'?'Copied!':'تم النسخ!';
-  setTimeout(()=>btn.textContent=old,2000);
-};
+        window.toggleTheme = function() {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            document.querySelector('.nav-link[onclick="toggleTheme()"]').textContent = currentTheme === 'light' ? '🌙' : '☀️';
+            localStorage.setItem('theme', currentTheme);
+        }
 
-// ---------- NAVIGATION ----------
-window.toggleTheme = function() {
-  currentTheme = currentTheme==='light'?'dark':'light';
-  document.documentElement.setAttribute('data-theme', currentTheme);
-  localStorage.setItem('theme', currentTheme);
-};
-window.toggleLanguage = function() {
-  currentLang = currentLang==='en'?'ar':'en';
-  document.documentElement.setAttribute('lang', currentLang);
-  document.documentElement.setAttribute('dir', currentLang==='ar'?'rtl':'ltr');
-  localStorage.setItem('language', currentLang);
-  renderCities(); renderOffers();
-};
-window.filterByStoreType = function(type) { currentStoreType=type; renderOffers(); };
-window.goHome = ()=> { location.hash=''; document.getElementById('offersSection').style.display='block'; document.getElementById('contactSection').style.display='none'; };
+        window.toggleLanguage = function() {
+            currentLang = currentLang === 'en' ? 'ar' : 'en';
+            document.documentElement.setAttribute('lang', currentLang);
+            document.documentElement.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
+            updateLanguage();
+            localStorage.setItem('language', currentLang);
+        }
 
-// ---------- LOAD DATA ----------
-async function loadAll() {
-  try {
-    const [companySnap, citySnap, offerSnap] = await Promise.all([
-      getDocs(collection(db,'companyInfo')),
-      getDocs(collection(db,'cities')),
-      getDocs(query(collection(db,'offers'), orderBy('createdAt','desc')))
-    ]);
-    companySnap.forEach(d=>companyInfo=d.data());
-    citySnap.forEach(d=>cities.push({id:d.id,...d.data()}));
-    offerSnap.forEach(d=>allOffers.push({id:d.id,...d.data()}));
-    if (companyInfo.logo) document.getElementById('headerLogo').innerHTML=`<img src="${companyInfo.logo}">`;
-    renderCities(); renderOffers();
-  } catch (e) { console.error("Load Error:", e); }
-}
+        function updateLanguage() {
+            document.querySelectorAll('[data-en]').forEach(el => {
+                const text = currentLang === 'en' ? el.getAttribute('data-en') : el.getAttribute('data-ar');
+                if (text) el.textContent = text;
+            });
 
-// ---------- INIT ----------
-visitorId = getVisitorId(); sessionId=getSessionId();
-trackPageView();
-initCustomDropdown();
-loadAll();
+            document.querySelectorAll('[data-en-placeholder]').forEach(el => {
+                const placeholder = currentLang === 'en' ? 
+                    el.getAttribute('data-en-placeholder') : 
+                    el.getAttribute('data-ar-placeholder');
+                if (placeholder) el.placeholder = placeholder;
+            });
 
-document.getElementById('searchInput').addEventListener('input', e=>{
-  clearTimeout(window.searchTimeout);
-  window.searchTimeout=setTimeout(renderOffers,250);
-});
+            // Update custom dropdown selected text
+            const selectedItem = document.querySelector(`.dropdown-item[data-value="${currentLocation}"]`);
+            if (selectedItem) {
+                const textElement = selectedItem.querySelector('span');
+                const text = currentLang === 'en' ? 
+                    textElement.getAttribute('data-en') : 
+                    textElement.getAttribute('data-ar');
+                document.getElementById('selectedLocation').textContent = text;
+            }
 
-document.getElementById('offerModal').addEventListener('click',e=>{
-  if (e.target===e.currentTarget) closeOfferModal();
-});
+            renderOffers();
+            renderCities();
+            
+            // Re-render contact info if on contact page
+            if (window.location.hash === '#contact' && Object.keys(contactInfo).length > 0) {
+                renderContactInfo();
+            }
+            
+            // Re-render modal content if it's open
+            if (document.getElementById('offerModal').classList.contains('active') && currentOffer) {
+                showOfferDetails(currentOffer.id);
+            }
+        }
 
-if (currentTheme==='dark') toggleTheme();
-if (currentLang==='ar') toggleLanguage();
-</script>
+        async function loadCompanyInfo() {
+            try {
+                const snapshot = await getDocs(collection(db, 'companyInfo'));
+                snapshot.forEach((doc) => {
+                    companyInfo = doc.data();
+                });
+                
+                if (companyInfo.logo) {
+                    document.getElementById('headerLogo').innerHTML = `<img src="${companyInfo.logo}" alt="Logo">`;
+                }
+            } catch (error) {
+                console.error("Error loading company info:", error);
+            }
+        }
+
+        async function loadContactInfo() {
+            try {
+                const snapshot = await getDocs(collection(db, 'contactInfo'));
+                snapshot.forEach((doc) => {
+                    contactInfo = doc.data();
+                });
+                renderContactInfo();
+            } catch (error) {
+                console.error("Error loading contact info:", error);
+            }
+        }
+
+        async function loadCities() {
+            try {
+                const snapshot = await getDocs(collection(db, 'cities'));
+                cities = [];
+                snapshot.forEach((doc) => {
+                    cities.push({ id: doc.id, ...doc.data() });
+                });
+                renderCities();
+            } catch (error) {
+                console.error("Error loading cities:", error);
+                // Default cities with icons
+                cities = [
+                    { id: 'khobar', nameEn: 'Khobar', nameAr: 'الخبر', icon: '🏙️' },
+                    { id: 'dammam', nameEn: 'Dammam', nameAr: 'الدمام', icon: '🌆' },
+                    { id: 'riyadh', nameEn: 'Riyadh', nameAr: 'الرياض', icon: '🏛️' },
+                    { id: 'jeddah', nameEn: 'Jeddah', nameAr: 'جدة', icon: '🌊' },
+                    { id: 'test', nameEn: 'Test', nameAr: 'اختبار', icon: '🧪' }
+                ];
+                renderCities();
+            }
+        }
+
+        function renderCities() {
+            const dropdownList = document.getElementById('dropdownList');
+            
+            // Create HTML for all dropdown items
+            let itemsHTML = `
+                <div class="dropdown-item ${currentLocation === 'all' ? 'selected' : ''}" data-value="all">
+                    <div class="dropdown-item-icon">🌍</div>
+                    <span data-en="All Locations" data-ar="جميع المناطق">${currentLang === 'en' ? 'All Locations' : 'جميع المناطق'}</span>
+                </div>
+            `;
+            
+            cities.forEach(city => {
+                const cityIcon = city.icon || city.nameEn.charAt(0).toUpperCase();
+                itemsHTML += `
+                    <div class="dropdown-item ${currentLocation === city.id ? 'selected' : ''}" data-value="${city.id}">
+                        <div class="dropdown-item-icon">${cityIcon}</div>
+                        <span data-en="${city.nameEn}" data-ar="${city.nameAr}">${currentLang === 'en' ? city.nameEn : city.nameAr}</span>
+                    </div>
+                `;
+            });
+            
+            dropdownList.innerHTML = itemsHTML;
+            
+            // Update the selected text in header
+            const selectedItem = document.querySelector(`.dropdown-item[data-value="${currentLocation}"]`);
+            if (selectedItem) {
+                const textElement = selectedItem.querySelector('span');
+                const text = currentLang === 'en' ? 
+                    textElement.getAttribute('data-en') : 
+                    textElement.getAttribute('data-ar');
+                const selectedLocationSpan = document.getElementById('selectedLocation');
+                selectedLocationSpan.textContent = text;
+                selectedLocationSpan.setAttribute('data-en', textElement.getAttribute('data-en'));
+                selectedLocationSpan.setAttribute('data-ar', textElement.getAttribute('data-ar'));
+            }
+        }
+
+        async function loadOffers() {
+            try {
+                const offersRef = collection(db, 'offers');
+                const q = query(offersRef, orderBy('createdAt', 'desc'));
+                const querySnapshot = await getDocs(q);
+                
+                allOffers = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    allOffers.push({ id: doc.id, ...data });
+                });
+
+                renderOffers();
+            } catch (error) {
+                console.error("Error loading offers:", error);
+                loadSampleData();
+            }
+        }
+
+        function loadSampleData() {
+            // Empty sample data - will show "No offers found" message
+            allOffers = [];
+            renderOffers();
+        }
+
+        window.filterByStoreType = function(storeType) {
+            currentStoreType = storeType;
+            document.querySelectorAll('.filter-btn[data-store]').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-store') === storeType);
+            });
+            renderOffers();
+        }
+
+        function getStoreTypeText(storeType) {
+            const types = {
+                online: { en: 'Online Only', ar: 'أونلاين فقط' },
+                showroom: { en: 'Showroom Only', ar: 'المعرض فقط' },
+                both: { en: 'Online & Showroom', ar: 'أونلاين والمعرض' }
+            };
+            return types[storeType] || types.both;
+        }
+
+        function formatValidityDate(dateStr) {
+            if (!dateStr) return { en: 'Limited time offer', ar: 'عرض لفترة محدودة' };
+            
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) {
+                    return { en: 'Limited time offer', ar: 'عرض لفترة محدودة' };
+                }
+                
+                const enDate = date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                const arDate = date.toLocaleDateString('ar-SA', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                
+                return {
+                    en: `Valid until ${enDate}`,
+                    ar: `صالح حتى ${arDate}`
+                };
+            } catch (e) {
+                return { en: 'Limited time offer', ar: 'عرض لفترة محدودة' };
+            }
+        }
+
+        function renderOffers() {
+            const container = document.getElementById('offersGrid');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filteredOffers = allOffers;
+            
+            // Filter by location - if location is set to "all" on the offer, it shows for any selected location
+            if (currentLocation !== 'all') {
+                filteredOffers = filteredOffers.filter(offer => 
+                    offer.location === 'all' || offer.location === currentLocation
+                );
+            }
+            
+            // Filter by store type
+            if (currentStoreType !== 'all') {
+                filteredOffers = filteredOffers.filter(offer => {
+                    if (currentStoreType === 'both') {
+                        return offer.storeType === 'both';
+                    } else if (currentStoreType === 'online') {
+                        return offer.storeType === 'online' || offer.storeType === 'both';
+                    } else if (currentStoreType === 'showroom') {
+                        return offer.storeType === 'showroom' || offer.storeType === 'both';
+                    }
+                    return true;
+                });
+            }
+            
+            // Filter by search term
+            if (searchTerm) {
+                filteredOffers = filteredOffers.filter(offer => {
+                    const companyName = currentLang === 'en' ? 
+                        (offer.companyName?.en || '').toLowerCase() : 
+                        (offer.companyName?.ar || '').toLowerCase();
+                    const description = currentLang === 'en' ? 
+                        (offer.description?.en || '').toLowerCase() : 
+                        (offer.description?.ar || '').toLowerCase();
+                    return companyName.includes(searchTerm) || description.includes(searchTerm);
+                });
+
+                // Track search only when user has typed something
+                if (searchTerm.length > 2) {
+                    trackSearch(searchTerm, filteredOffers.length);
+                }
+            }
+            
+            if (filteredOffers.length === 0) {
+                container.innerHTML = `<div class="no-offers" data-en="No offers found" data-ar="لا توجد عروض">${currentLang === 'en' ? 'No offers found' : 'لا توجد عروض'}</div>`;
+                return;
+            }
+            
+            container.innerHTML = filteredOffers.map(offer => {
+                const validity = formatValidityDate(offer.validity);
+                const storeType = getStoreTypeText(offer.storeType);
+                
+                return `
+                    <div class="offer-card" onclick="showOfferDetails('${offer.id}')">
+                        ${offer.isNew ? `<span class="new-badge">${currentLang === 'en' ? 'NEW' : 'جديد'}</span>` : ''}
+                        <div class="card-header">
+                            <div class="company-logo">
+                                ${offer.companyLogo ? 
+                                    `<img src="${offer.companyLogo}" alt="${offer.companyName?.[currentLang]}">` :
+                                    `<span class="logo-placeholder">${(offer.companyName?.[currentLang] || offer.companyName?.en || 'Company').substring(0, 3).toUpperCase()}</span>`
+                                }
+                            </div>
+                            <div class="company-name">${offer.companyName?.[currentLang] || offer.companyName?.en || 'Company'}</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="offer-type">
+                                <span class="store-type">${storeType[currentLang]}</span>
+                            </div>
+                            <div class="discount-amount">${offer.discount} ${currentLang === 'en' ? 'OFF' : 'خصم'}</div>
+                            <div class="offer-description">${offer.description?.[currentLang] || offer.description?.en || 'Special offer'}</div>
+                            <div class="validity">${validity[currentLang]}</div>
+                            <div class="card-actions">
+                                <button class="btn btn-primary">${currentLang === 'en' ? 'View Offer' : 'عرض العرض'}</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.showOfferDetails = async function(offerId) {
+            currentOffer = allOffers.find(o => o.id === offerId);
+            if (!currentOffer) return;
+
+            // Track offer view
+            await trackOfferInteraction(offerId, 'view', currentOffer);
+
+            const validity = formatValidityDate(currentOffer.validity);
+            const storeType = getStoreTypeText(currentOffer.storeType);
+            const cityName = cities.find(c => c.id === currentOffer.location);
+            const locationText = cityName ? 
+                (currentLang === 'en' ? cityName.nameEn : cityName.nameAr) : 
+                (currentLang === 'en' ? 'All Locations' : 'جميع المناطق');
+
+            document.getElementById('modalCompanyName').textContent = 
+                currentOffer.companyName?.[currentLang] || currentOffer.companyName?.en || 'Company';
+            
+            document.getElementById('modalLogo').innerHTML = currentOffer.companyLogo ? 
+                `<img src="${currentOffer.companyLogo}" alt="${currentOffer.companyName?.[currentLang]}">` :
+                `<span style="font-size: 2rem; color: var(--primary-color); font-weight: bold;">${(currentOffer.companyName?.[currentLang] || currentOffer.companyName?.en || 'Company').substring(0, 3).toUpperCase()}</span>`;
+            
+            document.getElementById('modalOfferCode').textContent = currentOffer.offerCode || 'NO-CODE';
+            document.getElementById('modalDiscount').textContent = currentOffer.discount;
+            document.getElementById('modalStoreType').textContent = storeType[currentLang];
+            document.getElementById('modalLocation').textContent = locationText;
+            document.getElementById('modalValidity').textContent = validity[currentLang];
+            document.getElementById('modalHowToUse').textContent = 
+                currentOffer.howToUse?.[currentLang] || 
+                currentOffer.howToUse?.en || 
+                (currentLang === 'en' ? 
+                    'Present this code at the time of purchase to receive your discount' : 
+                    'قدم هذا الكود وقت الشراء للحصول على الخصم');
+
+            document.getElementById('offerModal').classList.add('active');
+        }
+
+        window.closeOfferModal = function() {
+            document.getElementById('offerModal').classList.remove('active');
+        }
+
+        window.copyCode = async function() {
+            if (!currentOffer) return;
+            
+            const code = currentOffer.offerCode || 'NO-CODE';
+            navigator.clipboard.writeText(code).then(async () => {
+                // Track code copy as a click/conversion
+                await trackOfferInteraction(currentOffer.id, 'copy_code', currentOffer);
+                
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = currentLang === 'en' ? 'Copied!' : 'تم النسخ!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        function renderContactInfo() {
+            const container = document.getElementById('contactInfo');
+            if (!contactInfo.phone && !contactInfo.email && !contactInfo.address) {
+                container.innerHTML = `<p>${currentLang === 'en' ? 'Contact information will be available soon.' : 'معلومات الاتصال ستكون متاحة قريباً.'}</p>`;
+                return;
+            }
+
+            container.innerHTML = `
+                ${contactInfo.phone ? `
+                    <div class="contact-item">
+                        <span class="contact-icon">📞</span>
+                        <div>
+                            <strong>${currentLang === 'en' ? 'Phone' : 'الهاتف'}</strong><br>
+                            ${contactInfo.phone}
+                        </div>
+                    </div>
+                ` : ''}
+                ${contactInfo.email ? `
+                    <div class="contact-item">
+                        <span class="contact-icon">📧</span>
+                        <div>
+                            <strong>${currentLang === 'en' ? 'Email' : 'البريد الإلكتروني'}</strong><br>
+                            ${contactInfo.email}
+                        </div>
+                    </div>
+                ` : ''}
+                ${contactInfo.address ? `
+                    <div class="contact-item">
+                        <span class="contact-icon">📍</span>
+                        <div>
+                            <strong>${currentLang === 'en' ? 'Address' : 'العنوان'}</strong><br>
+                            ${contactInfo.address[currentLang] || contactInfo.address.en || contactInfo.address}
+                        </div>
+                    </div>
+                ` : ''}
+                ${contactInfo.workingHours ? `
+                    <div class="contact-item">
+                        <span class="contact-icon">🕐</span>
+                        <div>
+                            <strong>${currentLang === 'en' ? 'Working Hours' : 'ساعات العمل'}</strong><br>
+                            ${contactInfo.workingHours[currentLang] || contactInfo.workingHours.en || contactInfo.workingHours}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+
+            if (contactInfo.description) {
+                document.getElementById('contactDescription').textContent = 
+                    contactInfo.description[currentLang] || contactInfo.description.en || '';
+            }
+        }
+
+        // Handle navigation
+        window.addEventListener('hashchange', function() {
+            const hash = window.location.hash;
+            if (hash === '#contact') {
+                document.getElementById('offersSection').style.display = 'none';
+                document.getElementById('contactSection').style.display = 'block';
+                loadContactInfo();
+            } else {
+                document.getElementById('offersSection').style.display = 'block';
+                document.getElementById('contactSection').style.display = 'none';
+            }
+        });
+
+        // Initialize
+        document.getElementById('searchInput').addEventListener('input', renderOffers);
+        
+        // Initialize custom dropdown
+        initCustomDropdown();
+
+        // Load saved preferences
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        const savedLang = localStorage.getItem('language') || 'en';
+        
+        if (savedTheme === 'dark') {
+            toggleTheme();
+        }
+        
+        if (savedLang === 'ar') {
+            toggleLanguage();
+        }
+
+        // Check initial hash
+        if (window.location.hash === '#contact') {
+            document.getElementById('offersSection').style.display = 'none';
+            document.getElementById('contactSection').style.display = 'block';
+            loadContactInfo();
+        }
+
+        // Initialize analytics
+        visitorId = getOrCreateVisitorId();
+        sessionId = getSessionId();
+        trackPageView();
+
+        // Load data
+        loadCompanyInfo();
+        loadCities();
+        loadOffers();
+
+        // Close modal when clicking outside
+        document.getElementById('offerModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeOfferModal();
+            }
+        });
+    </script>
 
 </body>
 <footer>
