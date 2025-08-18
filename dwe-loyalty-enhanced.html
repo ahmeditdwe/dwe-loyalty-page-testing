@@ -1186,7 +1186,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, getDoc, increment } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCL1leMGrP2M9MMnuOk_7mAAPq_ooHVrSQ",
@@ -1210,6 +1210,128 @@
         let companyInfo = {};
         let contactInfo = {};
         let currentOffer = null;
+        let sessionStartTime = Date.now();
+        let visitorId = null;
+        let sessionId = null;
+
+        // Analytics Helper Functions
+        function getOrCreateVisitorId() {
+            let visitorId = localStorage.getItem('dwe_visitor_id');
+            if (!visitorId) {
+                visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('dwe_visitor_id', visitorId);
+            }
+            return visitorId;
+        }
+
+        function getSessionId() {
+            if (!sessionId) {
+                sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+            return sessionId;
+        }
+
+        function getDeviceType() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            if (/tablet|ipad|playbook|silk/i.test(userAgent)) return 'tablet';
+            if (/mobile|iphone|ipod|android|blackberry|opera|mini|windows\sce|palm|smartphone|iemobile/i.test(userAgent)) return 'mobile';
+            return 'desktop';
+        }
+
+        function getBrowserName() {
+            const userAgent = navigator.userAgent;
+            if (userAgent.indexOf("Chrome") > -1) return "Chrome";
+            if (userAgent.indexOf("Safari") > -1) return "Safari";
+            if (userAgent.indexOf("Firefox") > -1) return "Firefox";
+            if (userAgent.indexOf("Edge") > -1) return "Edge";
+            return "Other";
+        }
+
+        // Track page view when page loads
+        async function trackPageView() {
+            try {
+                visitorId = getOrCreateVisitorId();
+                sessionId = getSessionId();
+                
+                await addDoc(collection(db, 'analytics_pageviews'), {
+                    visitorId: visitorId,
+                    sessionId: sessionId,
+                    page: window.location.pathname,
+                    referrer: document.referrer || 'direct',
+                    device: getDeviceType(),
+                    browser: getBrowserName(),
+                    location: currentLocation,
+                    language: currentLang,
+                    timestamp: serverTimestamp(),
+                    userAgent: navigator.userAgent
+                });
+            } catch (error) {
+                console.error("Error tracking page view:", error);
+            }
+        }
+
+        // Track offer views and clicks
+        async function trackOfferInteraction(offerId, action, offerData) {
+            try {
+                await addDoc(collection(db, 'analytics_offer_clicks'), {
+                    offerId: offerId,
+                    companyName: offerData.companyName?.[currentLang] || offerData.companyName?.en || 'Unknown',
+                    action: action, // 'view' or 'copy_code'
+                    discount: offerData.discount,
+                    category: offerData.category,
+                    storeType: offerData.storeType,
+                    visitorId: getOrCreateVisitorId(),
+                    sessionId: getSessionId(),
+                    timestamp: serverTimestamp(),
+                    device: getDeviceType(),
+                    browser: getBrowserName()
+                });
+
+                // Also update offer stats directly
+                const offerRef = doc(db, 'offers', offerId);
+                const statsField = action === 'view' ? 'viewCount' : 'clickCount';
+                await updateDoc(offerRef, {
+                    [statsField]: increment(1)
+                });
+            } catch (error) {
+                console.error("Error tracking offer interaction:", error);
+            }
+        }
+
+        // Track search queries
+        async function trackSearch(query, resultsCount) {
+            try {
+                await addDoc(collection(db, 'analytics_searches'), {
+                    query: query.toLowerCase(),
+                    resultsCount: resultsCount,
+                    visitorId: getOrCreateVisitorId(),
+                    sessionId: getSessionId(),
+                    timestamp: serverTimestamp(),
+                    location: currentLocation,
+                    storeType: currentStoreType,
+                    device: getDeviceType()
+                });
+            } catch (error) {
+                console.error("Error tracking search:", error);
+            }
+        }
+
+        // Track session end (when user leaves)
+        window.addEventListener('beforeunload', async function() {
+            const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000); // in seconds
+            try {
+                await addDoc(collection(db, 'analytics_sessions'), {
+                    visitorId: getOrCreateVisitorId(),
+                    sessionId: getSessionId(),
+                    duration: sessionDuration,
+                    timestamp: serverTimestamp(),
+                    device: getDeviceType(),
+                    browser: getBrowserName()
+                });
+            } catch (error) {
+                console.error("Error tracking session:", error);
+            }
+        });
 
         // Custom dropdown functionality
         function initCustomDropdown() {
@@ -1537,6 +1659,11 @@
                         (offer.description?.ar || '').toLowerCase();
                     return companyName.includes(searchTerm) || description.includes(searchTerm);
                 });
+
+                // Track search only when user has typed something
+                if (searchTerm.length > 2) {
+                    trackSearch(searchTerm, filteredOffers.length);
+                }
             }
             
             if (filteredOffers.length === 0) {
@@ -1576,9 +1703,12 @@
             }).join('');
         }
 
-        window.showOfferDetails = function(offerId) {
+        window.showOfferDetails = async function(offerId) {
             currentOffer = allOffers.find(o => o.id === offerId);
             if (!currentOffer) return;
+
+            // Track offer view
+            await trackOfferInteraction(offerId, 'view', currentOffer);
 
             const validity = formatValidityDate(currentOffer.validity);
             const storeType = getStoreTypeText(currentOffer.storeType);
@@ -1613,11 +1743,14 @@
             document.getElementById('offerModal').classList.remove('active');
         }
 
-        window.copyCode = function() {
+        window.copyCode = async function() {
             if (!currentOffer) return;
             
             const code = currentOffer.offerCode || 'NO-CODE';
-            navigator.clipboard.writeText(code).then(() => {
+            navigator.clipboard.writeText(code).then(async () => {
+                // Track code copy as a click/conversion
+                await trackOfferInteraction(currentOffer.id, 'copy_code', currentOffer);
+                
                 const btn = event.target;
                 const originalText = btn.textContent;
                 btn.textContent = currentLang === 'en' ? 'Copied!' : 'تم النسخ!';
@@ -1717,6 +1850,11 @@
             loadContactInfo();
         }
 
+        // Initialize analytics
+        visitorId = getOrCreateVisitorId();
+        sessionId = getSessionId();
+        trackPageView();
+
         // Load data
         loadCompanyInfo();
         loadCities();
@@ -1728,55 +1866,6 @@
                 closeOfferModal();
             }
         });
-
-        // // Track page views when the page loads
-        // async function trackPageView() {
-        //     const visitorId = getOrCreateVisitorId(); // Store in localStorage
-        //     await addDoc(collection(db, 'analytics_pageviews'), {
-        //         visitorId: visitorId,
-        //         page: window.location.pathname,
-        //         referrer: document.referrer,
-        //         device: getDeviceType(),
-        //         browser: getBrowserName(),
-        //         location: currentLocation,
-        //         timestamp: serverTimestamp(),
-        //         sessionId: getSessionId()
-        //     });
-        // }
-        // // Track when user clicks "View Offer" or opens modal
-        // async function trackOfferClick(offerId, action) {
-        //     await addDoc(collection(db, 'analytics_offer_clicks'), {
-        //         offerId: offerId,
-        //         companyName: offer.companyName[currentLang],
-        //         action: action, // 'view' or 'click'
-        //         visitorId: getOrCreateVisitorId(),
-        //         timestamp: serverTimestamp()
-        //     });
-        // }
-        // function getOrCreateVisitorId() {
-        //     let visitorId = localStorage.getItem('visitorId');
-        //     if (!visitorId) {
-        //         visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        //         localStorage.setItem('visitorId', visitorId);
-        //     }
-        //     return visitorId;
-        // }
-        
-        // function getDeviceType() {
-        //     const userAgent = navigator.userAgent;
-        //     if (/tablet|ipad|playbook|silk/i.test(userAgent)) return 'tablet';
-        //     if (/mobile|iphone|ipod|android|blackberry|opera|mini|windows\sce|palm|smartphone|iemobile/i.test(userAgent)) return 'mobile';
-        //     return 'desktop';
-        // }
-        
-        // function getBrowserName() {
-        //     const userAgent = navigator.userAgent;
-        //     if (userAgent.indexOf("Chrome") > -1) return "Chrome";
-        //     if (userAgent.indexOf("Safari") > -1) return "Safari";
-        //     if (userAgent.indexOf("Firefox") > -1) return "Firefox";
-        //     if (userAgent.indexOf("Edge") > -1) return "Edge";
-        //     return "Other";
-        // }
     </script>
 </body>
 <footer>
