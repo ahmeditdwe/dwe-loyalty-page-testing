@@ -17,6 +17,7 @@
             --shadow: 0 2px 10px rgba(0,0,0,0.1);
             --shadow-hover: 0 8px 25px rgba(0,0,0,0.15);
             --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-color: #4CAF50;
         }
 
         [data-theme="dark"] {
@@ -45,6 +46,46 @@
 
         [dir="rtl"] body {
             font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+        }
+
+        /* Snackbar Styles */
+        .snackbar {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--success-color), #45a049);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 600;
+            transition: bottom 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            min-width: 280px;
+            justify-content: center;
+        }
+
+        .snackbar.show {
+            bottom: 30px;
+        }
+
+        .snackbar-icon {
+            font-size: 1.5rem;
+            animation: checkmark 0.5s ease;
+        }
+
+        @keyframes checkmark {
+            0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(10deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        [dir="rtl"] .snackbar {
+            direction: rtl;
         }
 
         .header {
@@ -852,9 +893,15 @@
             z-index: 1;
         }
 
-        .copy-btn:hover {
+        .copy-btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(243, 111, 42, 0.3);
+        }
+
+        .copy-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
         }
 
         .offer-details {
@@ -1073,6 +1120,12 @@
     </style>
 </head>
 <body>
+    <!-- Snackbar for notifications -->
+    <div class="snackbar" id="snackbar">
+        <span class="snackbar-icon">✓</span>
+        <span id="snackbarText">Code copied successfully!</span>
+    </div>
+
     <header class="header">
         <div class="header-content">
             <div class="logo-section" onclick="goHome()">
@@ -1154,7 +1207,7 @@
                 <div class="offer-code-section">
                     <div class="offer-code-label" data-en="Use this code" data-ar="استخدم هذا الكود">Use this code</div>
                     <div class="offer-code" id="modalOfferCode">LOADING</div>
-                    <button class="copy-btn" onclick="copyCode()" data-en="Copy Code" data-ar="نسخ الكود">Copy Code</button>
+                    <button class="copy-btn" id="copyBtn" onclick="copyCode()" data-en="Copy Code" data-ar="نسخ الكود">Copy Code</button>
                 </div>
 
                 <div class="offer-details">
@@ -1214,7 +1267,10 @@
         let visitorId = null;
         let sessionId = null;
 
-        // Analytics Helper Functions
+        // Analytics Helper Functions with Optimizations
+        const analyticsQueue = [];
+        let isProcessingQueue = false;
+
         function getOrCreateVisitorId() {
             let visitorId = localStorage.getItem('dwe_visitor_id');
             if (!visitorId) {
@@ -1247,91 +1303,165 @@
             return "Other";
         }
 
-        // Track page view when page loads
-        async function trackPageView() {
-            try {
-                visitorId = getOrCreateVisitorId();
-                sessionId = getSessionId();
-                
-                await addDoc(collection(db, 'analytics_pageviews'), {
-                    visitorId: visitorId,
-                    sessionId: sessionId,
-                    page: window.location.pathname,
-                    referrer: document.referrer || 'direct',
-                    device: getDeviceType(),
-                    browser: getBrowserName(),
-                    location: currentLocation,
-                    language: currentLang,
-                    timestamp: serverTimestamp(),
-                    userAgent: navigator.userAgent
-                });
-            } catch (error) {
-                console.error("Error tracking page view:", error);
+        // Batch processing for analytics
+        async function processAnalyticsQueue() {
+            if (isProcessingQueue || analyticsQueue.length === 0) return;
+            
+            isProcessingQueue = true;
+            const batch = analyticsQueue.splice(0, 10); // Process up to 10 items at once
+            
+            for (const task of batch) {
+                try {
+                    await task();
+                } catch (error) {
+                    console.error("Analytics error:", error);
+                }
+            }
+            
+            isProcessingQueue = false;
+            
+            // Check if there are more items to process
+            if (analyticsQueue.length > 0) {
+                setTimeout(processAnalyticsQueue, 1000);
             }
         }
 
-        // Track offer views and clicks
-        async function trackOfferInteraction(offerId, action, offerData) {
-            try {
-                await addDoc(collection(db, 'analytics_offer_clicks'), {
-                    offerId: offerId,
-                    companyName: offerData.companyName?.[currentLang] || offerData.companyName?.en || 'Unknown',
-                    action: action, // 'view' or 'copy_code'
-                    discount: offerData.discount,
-                    category: offerData.category,
-                    storeType: offerData.storeType,
-                    visitorId: getOrCreateVisitorId(),
-                    sessionId: getSessionId(),
-                    timestamp: serverTimestamp(),
-                    device: getDeviceType(),
-                    browser: getBrowserName()
-                });
-
-                // Also update offer stats directly
-                const offerRef = doc(db, 'offers', offerId);
-                const statsField = action === 'view' ? 'viewCount' : 'clickCount';
-                await updateDoc(offerRef, {
-                    [statsField]: increment(1)
-                });
-            } catch (error) {
-                console.error("Error tracking offer interaction:", error);
-            }
+        // Optimized page view tracking
+        function trackPageView() {
+            analyticsQueue.push(async () => {
+                try {
+                    visitorId = getOrCreateVisitorId();
+                    sessionId = getSessionId();
+                    
+                    await addDoc(collection(db, 'analytics_pageviews'), {
+                        visitorId: visitorId,
+                        sessionId: sessionId,
+                        page: window.location.pathname,
+                        referrer: document.referrer || 'direct',
+                        device: getDeviceType(),
+                        browser: getBrowserName(),
+                        location: currentLocation,
+                        language: currentLang,
+                        timestamp: serverTimestamp(),
+                        userAgent: navigator.userAgent
+                    });
+                } catch (error) {
+                    console.error("Error tracking page view:", error);
+                }
+            });
+            
+            processAnalyticsQueue();
         }
 
-        // Track search queries
-        async function trackSearch(query, resultsCount) {
-            try {
-                await addDoc(collection(db, 'analytics_searches'), {
-                    query: query.toLowerCase(),
-                    resultsCount: resultsCount,
-                    visitorId: getOrCreateVisitorId(),
-                    sessionId: getSessionId(),
-                    timestamp: serverTimestamp(),
-                    location: currentLocation,
-                    storeType: currentStoreType,
-                    device: getDeviceType()
-                });
-            } catch (error) {
-                console.error("Error tracking search:", error);
+        // Debounced search tracking
+        let searchTimeout = null;
+        let lastSearchQuery = '';
+
+        function debouncedTrackSearch(query, resultsCount) {
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
             }
+            
+            searchTimeout = setTimeout(() => {
+                if (query && query !== lastSearchQuery && query.length > 2) {
+                    lastSearchQuery = query;
+                    analyticsQueue.push(async () => {
+                        try {
+                            await addDoc(collection(db, 'analytics_searches'), {
+                                query: query.toLowerCase(),
+                                resultsCount: resultsCount,
+                                visitorId: getOrCreateVisitorId(),
+                                sessionId: getSessionId(),
+                                timestamp: serverTimestamp(),
+                                location: currentLocation,
+                                storeType: currentStoreType,
+                                device: getDeviceType()
+                            });
+                        } catch (error) {
+                            console.error("Error tracking search:", error);
+                        }
+                    });
+                    processAnalyticsQueue();
+                }
+            }, 1500); // Wait 1.5 seconds after user stops typing
         }
 
-        // Track session end (when user leaves)
-        window.addEventListener('beforeunload', async function() {
-            const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000); // in seconds
-            try {
-                await addDoc(collection(db, 'analytics_sessions'), {
-                    visitorId: getOrCreateVisitorId(),
-                    sessionId: getSessionId(),
-                    duration: sessionDuration,
-                    timestamp: serverTimestamp(),
-                    device: getDeviceType(),
-                    browser: getBrowserName()
+        // Optimized offer interaction tracking
+        function trackOfferInteraction(offerId, action, offerData) {
+            analyticsQueue.push(async () => {
+                try {
+                    await addDoc(collection(db, 'analytics_offer_clicks'), {
+                        offerId: offerId,
+                        companyName: offerData.companyName?.[currentLang] || offerData.companyName?.en || 'Unknown',
+                        action: action,
+                        discount: offerData.discount,
+                        category: offerData.category,
+                        storeType: offerData.storeType,
+                        visitorId: getOrCreateVisitorId(),
+                        sessionId: getSessionId(),
+                        timestamp: serverTimestamp(),
+                        device: getDeviceType(),
+                        browser: getBrowserName()
+                    });
+
+                    const offerRef = doc(db, 'offers', offerId);
+                    const statsField = action === 'view' ? 'viewCount' : 'clickCount';
+                    await updateDoc(offerRef, {
+                        [statsField]: increment(1)
+                    });
+                } catch (error) {
+                    console.error("Error tracking offer interaction:", error);
+                }
+            });
+            
+            processAnalyticsQueue();
+        }
+
+        // Track session end with optimization
+        window.addEventListener('beforeunload', function() {
+            const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
+            
+            // Use sendBeacon for better reliability
+            const data = {
+                visitorId: getOrCreateVisitorId(),
+                sessionId: getSessionId(),
+                duration: sessionDuration,
+                device: getDeviceType(),
+                browser: getBrowserName()
+            };
+            
+            // Try to send using sendBeacon (more reliable for unload events)
+            if (navigator.sendBeacon) {
+                const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                navigator.sendBeacon('/api/analytics/session', blob);
+            } else {
+                // Fallback to sync request (less reliable)
+                analyticsQueue.push(async () => {
+                    try {
+                        await addDoc(collection(db, 'analytics_sessions'), {
+                            ...data,
+                            timestamp: serverTimestamp()
+                        });
+                    } catch (error) {
+                        console.error("Error tracking session:", error);
+                    }
                 });
-            } catch (error) {
-                console.error("Error tracking session:", error);
+                processAnalyticsQueue();
             }
         });
+
+        // Snackbar function
+        function showSnackbar(message) {
+            const snackbar = document.getElementById('snackbar');
+            const snackbarText = document.getElementById('snackbarText');
+            
+            snackbarText.textContent = message;
+            snackbar.classList.add('show');
+            
+            setTimeout(() => {
+                snackbar.classList.remove('show');
+            }, 3000);
+        }
 
         // Custom dropdown functionality
         function initCustomDropdown() {
@@ -1339,7 +1469,6 @@
             const dropdownList = document.getElementById('dropdownList');
             const dropdownOverlay = document.getElementById('dropdownOverlay');
 
-            // Toggle dropdown
             dropdownHeader.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const isActive = dropdownList.classList.contains('active');
@@ -1351,7 +1480,6 @@
                 }
             });
 
-            // Close dropdown when clicking overlay
             dropdownOverlay.addEventListener('click', closeDropdown);
 
             function openDropdown() {
@@ -1366,7 +1494,6 @@
                 dropdownOverlay.classList.remove('active');
             }
 
-            // Handle item selection
             dropdownList.addEventListener('click', function(e) {
                 const item = e.target.closest('.dropdown-item');
                 if (item) {
@@ -1380,7 +1507,6 @@
         function selectLocation(value) {
             currentLocation = value;
             
-            // Update selected item styling
             document.querySelectorAll('.dropdown-item').forEach(item => {
                 item.classList.remove('selected');
                 if (item.getAttribute('data-value') === value) {
@@ -1388,7 +1514,6 @@
                 }
             });
 
-            // Update header text
             const selectedItem = document.querySelector(`.dropdown-item[data-value="${value}"]`);
             if (selectedItem) {
                 const textElement = selectedItem.querySelector('span');
@@ -1397,7 +1522,6 @@
                     textElement.getAttribute('data-ar') || textElement.textContent;
                 document.getElementById('selectedLocation').textContent = text;
                 
-                // Update the data attributes on the selected location span
                 const selectedLocationSpan = document.getElementById('selectedLocation');
                 selectedLocationSpan.setAttribute('data-en', textElement.getAttribute('data-en') || textElement.textContent);
                 selectedLocationSpan.setAttribute('data-ar', textElement.getAttribute('data-ar') || textElement.textContent);
@@ -1440,7 +1564,6 @@
                 if (placeholder) el.placeholder = placeholder;
             });
 
-            // Update custom dropdown selected text
             const selectedItem = document.querySelector(`.dropdown-item[data-value="${currentLocation}"]`);
             if (selectedItem) {
                 const textElement = selectedItem.querySelector('span');
@@ -1453,12 +1576,10 @@
             renderOffers();
             renderCities();
             
-            // Re-render contact info if on contact page
             if (window.location.hash === '#contact' && Object.keys(contactInfo).length > 0) {
                 renderContactInfo();
             }
             
-            // Re-render modal content if it's open
             if (document.getElementById('offerModal').classList.contains('active') && currentOffer) {
                 showOfferDetails(currentOffer.id);
             }
@@ -1501,7 +1622,6 @@
                 renderCities();
             } catch (error) {
                 console.error("Error loading cities:", error);
-                // Default cities with icons
                 cities = [
                     { id: 'khobar', nameEn: 'Khobar', nameAr: 'الخبر', icon: '🏙️' },
                     { id: 'dammam', nameEn: 'Dammam', nameAr: 'الدمام', icon: '🌆' },
@@ -1516,7 +1636,6 @@
         function renderCities() {
             const dropdownList = document.getElementById('dropdownList');
             
-            // Create HTML for all dropdown items
             let itemsHTML = `
                 <div class="dropdown-item ${currentLocation === 'all' ? 'selected' : ''}" data-value="all">
                     <div class="dropdown-item-icon">🌍</div>
@@ -1536,7 +1655,6 @@
             
             dropdownList.innerHTML = itemsHTML;
             
-            // Update the selected text in header
             const selectedItem = document.querySelector(`.dropdown-item[data-value="${currentLocation}"]`);
             if (selectedItem) {
                 const textElement = selectedItem.querySelector('span');
@@ -1570,7 +1688,6 @@
         }
 
         function loadSampleData() {
-            // Empty sample data - will show "No offers found" message
             allOffers = [];
             renderOffers();
         }
@@ -1627,14 +1744,12 @@
             
             let filteredOffers = allOffers;
             
-            // Filter by location - if location is set to "all" on the offer, it shows for any selected location
             if (currentLocation !== 'all') {
                 filteredOffers = filteredOffers.filter(offer => 
                     offer.location === 'all' || offer.location === currentLocation
                 );
             }
             
-            // Filter by store type
             if (currentStoreType !== 'all') {
                 filteredOffers = filteredOffers.filter(offer => {
                     if (currentStoreType === 'both') {
@@ -1648,7 +1763,6 @@
                 });
             }
             
-            // Filter by search term
             if (searchTerm) {
                 filteredOffers = filteredOffers.filter(offer => {
                     const companyName = currentLang === 'en' ? 
@@ -1660,10 +1774,8 @@
                     return companyName.includes(searchTerm) || description.includes(searchTerm);
                 });
 
-                // Track search only when user has typed something
-                if (searchTerm.length > 2) {
-                    trackSearch(searchTerm, filteredOffers.length);
-                }
+                // Use debounced search tracking
+                debouncedTrackSearch(searchTerm, filteredOffers.length);
             }
             
             if (filteredOffers.length === 0) {
@@ -1703,12 +1815,12 @@
             }).join('');
         }
 
-        window.showOfferDetails = async function(offerId) {
+        window.showOfferDetails = function(offerId) {
             currentOffer = allOffers.find(o => o.id === offerId);
             if (!currentOffer) return;
 
-            // Track offer view
-            await trackOfferInteraction(offerId, 'view', currentOffer);
+            // Track offer view with optimization
+            trackOfferInteraction(offerId, 'view', currentOffer);
 
             const validity = formatValidityDate(currentOffer.validity);
             const storeType = getStoreTypeText(currentOffer.storeType);
@@ -1736,6 +1848,11 @@
                     'Present this code at the time of purchase to receive your discount' : 
                     'قدم هذا الكود وقت الشراء للحصول على الخصم');
 
+            // Reset copy button state
+            const copyBtn = document.getElementById('copyBtn');
+            copyBtn.disabled = false;
+            copyBtn.textContent = currentLang === 'en' ? 'Copy Code' : 'نسخ الكود';
+
             document.getElementById('offerModal').classList.add('active');
         }
 
@@ -1747,17 +1864,32 @@
             if (!currentOffer) return;
             
             const code = currentOffer.offerCode || 'NO-CODE';
-            navigator.clipboard.writeText(code).then(async () => {
-                // Track code copy as a click/conversion
-                await trackOfferInteraction(currentOffer.id, 'copy_code', currentOffer);
+            const copyBtn = document.getElementById('copyBtn');
+            
+            try {
+                await navigator.clipboard.writeText(code);
                 
-                const btn = event.target;
-                const originalText = btn.textContent;
-                btn.textContent = currentLang === 'en' ? 'Copied!' : 'تم النسخ!';
+                // Track code copy with optimization
+                trackOfferInteraction(currentOffer.id, 'copy_code', currentOffer);
+                
+                // Show snackbar
+                const message = currentLang === 'en' ? 
+                    'Code copied successfully!' : 
+                    'تم نسخ الكود بنجاح!';
+                showSnackbar(message);
+                
+                // Disable button for 10 seconds
+                copyBtn.disabled = true;
+                copyBtn.textContent = currentLang === 'en' ? 'Copied!' : 'تم النسخ!';
+                
                 setTimeout(() => {
-                    btn.textContent = originalText;
-                }, 2000);
-            });
+                    copyBtn.disabled = false;
+                    copyBtn.textContent = currentLang === 'en' ? 'Copy Code' : 'نسخ الكود';
+                }, 10000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                showSnackbar(currentLang === 'en' ? 'Failed to copy code' : 'فشل نسخ الكود');
+            }
         }
 
         function renderContactInfo() {
@@ -1825,8 +1957,10 @@
             }
         });
 
-        // Initialize
-        document.getElementById('searchInput').addEventListener('input', renderOffers);
+        // Initialize with optimized search
+        document.getElementById('searchInput').addEventListener('input', function() {
+            renderOffers(); // This will use debounced tracking
+        });
         
         // Initialize custom dropdown
         initCustomDropdown();
@@ -1850,15 +1984,23 @@
             loadContactInfo();
         }
 
-        // Initialize analytics
+        // Initialize analytics with optimizations
         visitorId = getOrCreateVisitorId();
         sessionId = getSessionId();
-        trackPageView();
+        
+        // Delay initial page view tracking slightly to not block page load
+        setTimeout(() => {
+            trackPageView();
+        }, 100);
 
-        // Load data
+        // Load data with staggered approach to improve performance
         loadCompanyInfo();
-        loadCities();
-        loadOffers();
+        
+        // Load critical data first
+        setTimeout(() => {
+            loadCities();
+            loadOffers();
+        }, 50);
 
         // Close modal when clicking outside
         document.getElementById('offerModal').addEventListener('click', function(e) {
