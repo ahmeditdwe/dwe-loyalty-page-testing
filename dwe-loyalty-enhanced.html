@@ -1750,7 +1750,7 @@
             const container = document.getElementById('offersGrid');
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             
-            let filteredOffers = allOffers;
+            let filteredOffers = allOffers.filter(offer => offer.isActive === true);
             
             if (currentLocation !== 'all') {
                 filteredOffers = filteredOffers.filter(offer => 
@@ -1787,9 +1787,12 @@
             }
             
             if (filteredOffers.length === 0) {
-                container.innerHTML = `<div class="no-offers" data-en="No offers found" data-ar="لا توجد عروض">${currentLang === 'en' ? 'No offers found' : 'لا توجد عروض'}</div>`;
-                return;
-            }
+    const noOffersMessage = searchTerm || currentLocation !== 'all' || currentStoreType !== 'all' 
+        ? (currentLang === 'en' ? 'No offers found for your search criteria' : 'لا توجد عروض لمعايير البحث الخاصة بك')
+        : (currentLang === 'en' ? 'No active offers available at the moment' : 'لا توجد عروض نشطة متاحة حالياً');
+    container.innerHTML = `<div class="no-offers">${noOffersMessage}</div>`;
+    return;
+}
             
             container.innerHTML = filteredOffers.map(offer => {
                 const validity = formatValidityDate(offer.validity);
@@ -1824,7 +1827,7 @@
         }
 
         window.showOfferDetails = function(offerId) {
-            currentOffer = allOffers.find(o => o.id === offerId);
+            currentOffer = allOffers.find(o => o.id === offerId && o.isActive === true);
             if (!currentOffer) return;
 
             // Track offer view with optimization
