@@ -1080,7 +1080,7 @@
             }
 
             .store-type-filters {
-                flex-direction: column;
+                
                 align-items: flex-start;
             }
 
@@ -1296,10 +1296,18 @@
 
         function getBrowserName() {
             const userAgent = navigator.userAgent;
+            // Check for Edge first (includes "Edg/" in modern Edge)
+            if (userAgent.indexOf("Edg") > -1 || userAgent.indexOf("Edge") > -1) return "Edge";
+            // Check for Opera
+            if (userAgent.indexOf("OPR") > -1 || userAgent.indexOf("Opera") > -1) return "Opera";
+            // Check for Chrome (must be after Edge and Opera as they contain Chrome string)
             if (userAgent.indexOf("Chrome") > -1) return "Chrome";
+            // Check for Safari (must be after Chrome as Chrome contains Safari string)
             if (userAgent.indexOf("Safari") > -1) return "Safari";
+            // Check for Firefox
             if (userAgent.indexOf("Firefox") > -1) return "Firefox";
-            if (userAgent.indexOf("Edge") > -1) return "Edge";
+            // Check for IE
+            if (userAgent.indexOf("MSIE") > -1 || userAgent.indexOf("Trident") > -1) return "IE";
             return "Other";
         }
 
@@ -1894,7 +1902,7 @@
 
         function renderContactInfo() {
             const container = document.getElementById('contactInfo');
-            if (!contactInfo.phone && !contactInfo.email && !contactInfo.address) {
+            if (!contactInfo.phone && !contactInfo.email) {
                 container.innerHTML = `<p>${currentLang === 'en' ? 'Contact information will be available soon.' : 'معلومات الاتصال ستكون متاحة قريباً.'}</p>`;
                 return;
             }
@@ -1918,15 +1926,7 @@
                         </div>
                     </div>
                 ` : ''}
-                ${contactInfo.address ? `
-                    <div class="contact-item">
-                        <span class="contact-icon">📍</span>
-                        <div>
-                            <strong>${currentLang === 'en' ? 'Address' : 'العنوان'}</strong><br>
-                            ${contactInfo.address[currentLang] || contactInfo.address.en || contactInfo.address}
-                        </div>
-                    </div>
-                ` : ''}
+                
                 ${contactInfo.workingHours ? `
                     <div class="contact-item">
                         <span class="contact-icon">🕐</span>
